@@ -5,12 +5,14 @@
   "type": "module",
   "main": "dist/index.js",
   "bin": {
-    "nodash-mcp-server": "dist/index.js"
+    "nodash-mcp-server": "dist/index.js",
+    "nodash-mcp": "dist/index.js"
   },
   "scripts": {
     "build": "tsc",
     "start": "node dist/index.js",
     "dev": "npm run build && npm start",
+    "prepublishOnly": "npm run build",
     "postinstall": "chmod +x dist/index.js || true"
   },
   "keywords": [
@@ -19,7 +21,8 @@
     "tracking",
     "ai",
     "ide",
-    "model-context-protocol"
+    "model-context-protocol",
+    "nodash"
   ],
   "author": "Nodash",
   "license": "MIT",
@@ -38,5 +41,8 @@
     "type": "git",
     "url": "https://github.com/nodash/nodash.git",
     "directory": "packages/nodash-mcp-server"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }
