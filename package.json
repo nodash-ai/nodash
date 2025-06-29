@@ -1,0 +1,35 @@
+{
+  "name": "nodash-mcp",
+  "version": "1.0.0",
+  "description": "Nodash Analytics Platform - Zero-configuration analytics with intelligent MCP integration",
+  "private": true,
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "npm run build --workspaces",
+    "clean": "npm run clean --workspaces && rm -rf node_modules",
+    "dev": "npm run dev --workspaces",
+    "test": "npm run test --workspaces",
+    "start": "npm run start-analytics",
+    "start-analytics": "cd packages/nodash-analytics-server && npm start",
+    "start-mcp": "cd packages/nodash-mcp-server && npm start",
+    "setup": "npm install && npm run build"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0"
+  },
+  "keywords": [
+    "analytics", 
+    "mcp", 
+    "model-context-protocol", 
+    "sdk",
+    "zero-configuration",
+    "typescript"
+  ],
+  "author": "Nodash",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

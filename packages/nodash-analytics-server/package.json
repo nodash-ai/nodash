@@ -1,0 +1,36 @@
+{
+  "name": "@nodash/analytics-server",
+  "version": "1.0.0",
+  "description": "Nodash Analytics Server - HTTP server for analytics data storage",
+  "type": "module",
+  "main": "dist/index.js",
+  "bin": {
+    "nodash-analytics-server": "dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "node dist/index.js",
+    "start": "node dist/index.js"
+  },
+  "keywords": [
+    "analytics",
+    "server",
+    "nodash"
+  ],
+  "author": "Nodash",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.18.2",
+    "cors": "^2.8.5"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "@types/express": "^4.17.21",
+    "@types/cors": "^2.8.17",
+    "typescript": "^5.7.2"
+  },
+  "files": [
+    "dist/**/*",
+    "README.md"
+  ]
+} 
