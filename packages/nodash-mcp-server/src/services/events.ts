@@ -32,7 +32,7 @@ export class EventsService {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          name: event_name,
+          event_name,
           properties,
           description: description || '',
         }),
@@ -61,10 +61,10 @@ export class EventsService {
     
     try {
       const params = new URLSearchParams();
-      if (event_name) params.append('event', event_name);
+      if (event_name) params.append('event_name', event_name);
       params.append('limit', limit.toString());
       
-      const response = await fetch(`${ANALYTICS_SERVER_URL}/events?${params}`);
+      const response = await fetch(`${ANALYTICS_SERVER_URL}/events/data?${params}`);
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
@@ -91,16 +91,14 @@ export class EventsService {
     }
 
     try {
-      const response = await fetch(`${ANALYTICS_SERVER_URL}/events`, {
+      const response = await fetch(`${ANALYTICS_SERVER_URL}/events/track`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          event: event_name,
-          properties: properties || {},
-          timestamp: new Date().toISOString(),
-          source: 'mcp-server'
+          event_name,
+          data: properties || {},
         }),
       });
 
