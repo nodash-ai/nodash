@@ -14,7 +14,8 @@
     "start": "npm run start-analytics",
     "start-analytics": "cd packages/nodash-analytics-server && npm start",
     "start-mcp": "cd packages/nodash-mcp-server && npm start",
-    "setup": "npm install && npm run build"
+    "setup": "npm install && npm run build",
+    "analyze": "node packages/nodash-cli/dist/cli.js analyze"
   },
   "devDependencies": {
     "typescript": "^5.0.0"
