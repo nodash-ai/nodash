@@ -1,35 +1,118 @@
-# Nodash Dev
+# Nodash Analytics Platform
 
-Private development infrastructure for the Nodash Analytics Platform.
+Zero-configuration analytics with intelligent MCP integration. Track user behavior, analyze patterns, and get AI-powered insights for your applications.
 
-## 🏗️ Architecture
+## 🚀 Quick Start
 
-This repository contains the private server components that power the Nodash analytics platform. These servers handle data collection, processing, and provide APIs for the public SDK.
+### 1. Install the SDK
+
+```bash
+npm install @nodash/sdk
+```
+
+### 2. Initialize Analytics
+
+```typescript
+import { nodash } from '@nodash/sdk';
+
+// Uses https://api.nodash.ai by default
+nodash.init('your-project-token');
+
+// Or override for local development
+nodash.init('your-project-token', {
+  apiUrl: 'http://localhost:3001'
+});
+```
+
+### 3. Track Events
+
+```typescript
+// Track user actions
+nodash.track('Button Click', { button: 'signup' });
+
+// Identify users
+nodash.identify('user-123', { name: 'John Doe' });
+
+// Track page views
+nodash.page('Home Page');
+```
 
 ## 📦 Packages
 
-### [nodash-analytics-server](packages/nodash-analytics-server)
-Core analytics data collection and processing server.
+### [@nodash/sdk](packages/nodash-sdk)
+Analytics SDK for tracking events, users, and page views.
 
-- Event ingestion and validation
-- Real-time data processing
-- Data storage and retrieval
-- API endpoints for dashboard and SDK
+```bash
+npm install @nodash/sdk
+```
 
-## 🚀 Development
+### [@nodash/cli](packages/nodash-cli)
+CLI tool for project analysis and setup guidance.
 
-### Prerequisites
+```bash
+npx @nodash/cli analyze .
+```
 
-- Node.js 18+
-- TypeScript
-- Docker (for local development)
+### [@nodash/mcp-server](packages/nodash-mcp-server)
+MCP server for AI-powered analytics implementation guidance.
+
+```bash
+npx @nodash/mcp-server
+```
+
+## 🔧 Configuration
+
+### Production (Default)
+The SDK uses `https://api.nodash.ai` by default - no configuration needed.
+
+### Local Development
+Override the API URL for local development:
+
+```typescript
+nodash.init('your-project-token', {
+  apiUrl: 'http://localhost:3001',
+  debug: true
+});
+```
+
+## 🌟 Features
+
+- **Zero Configuration**: Works out of the box with sensible defaults
+- **TypeScript Support**: Full type safety and IntelliSense
+- **Framework Agnostic**: Works with React, Vue, Angular, and vanilla JS
+- **AI-Powered Analysis**: CLI and MCP server provide intelligent insights
+- **Privacy First**: GDPR compliant with user consent management
+- **Real-time Analytics**: Live dashboards and event streaming
+- **Automatic Batching**: Optimized network usage with intelligent batching
+
+## 📊 Tracking Capabilities
+
+### User Analytics
+- User identification and profiles
+- Session tracking and duration
+- User journey mapping
+- Cohort analysis
+
+### Event Tracking
+- Custom events with properties
+- E-commerce tracking
+- Form interactions
+- Button clicks and navigation
+
+### Performance Insights
+- Page load times
+- User engagement metrics
+- Feature usage analytics
+- Error tracking
+
+## 🛠️ Development
 
 ### Local Setup
 
 ```bash
 # Clone the repository
-git clone https://github.com/nodash-ai/nodash-dev.git
-cd nodash-dev
+git clone https://github.com/nodash/nodash.git
+cd nodash
 
 # Install dependencies
 npm install
@@ -37,93 +120,37 @@ npm install
 # Build all packages
 npm run build
 
-# Start development servers
-npm run dev
+# Start local analytics server
+npm run start-analytics
 ```
 
-### Environment Variables
-
-Copy `.env.example` to `.env` and configure:
-
-```env
-# Database
-DATABASE_URL=postgresql://user:password@localhost:5432/nodash
-
-# Redis
-REDIS_URL=redis://localhost:6379
-
-# API Keys
-JWT_SECRET=your-jwt-secret
-ENCRYPTION_KEY=your-encryption-key
-
-# External Services
-STRIPE_SECRET_KEY=sk_test_...
-SENDGRID_API_KEY=SG...
-```
-
-## 🔧 Configuration
-
-### Production Deployment
-
-Servers are deployed using Docker containers with environment-specific configurations:
-
-- **Staging**: `staging.nodash.ai`
-- **Production**: `api.nodash.ai`
-
-### Monitoring
-
-- **Logs**: Centralized logging with structured JSON
-- **Metrics**: Prometheus metrics collection
-- **Alerts**: PagerDuty integration for critical issues
-- **Health Checks**: Kubernetes readiness and liveness probes
-
-## 🔒 Security
-
-- **Authentication**: JWT-based API authentication
-- **Authorization**: Role-based access control (RBAC)
-- **Data Encryption**: AES-256 encryption for sensitive data
-- **Rate Limiting**: Redis-based rate limiting
-- **Input Validation**: Comprehensive request validation
-
-## 📊 Scaling
-
-### Database
-- **Primary**: PostgreSQL with read replicas
-- **Cache**: Redis for session and query caching
-- **Search**: Elasticsearch for analytics queries
-
-### Infrastructure
-- **Containers**: Docker with Kubernetes orchestration
-- **Load Balancing**: NGINX with auto-scaling
-- **CDN**: CloudFlare for global edge caching
-
-## 🧪 Testing
+### Running Tests
 
 ```bash
-# Run all tests
 npm test
-
-# Run integration tests
-npm run test:integration
-
-# Run load tests
-npm run test:load
 ```
 
 ## 📚 Documentation
 
-- **API Documentation**: [docs/api.md](docs/api.md)
-- **Database Schema**: [docs/schema.md](docs/schema.md)
-- **Deployment Guide**: [docs/deployment.md](docs/deployment.md)
+- **SDK Documentation**: [packages/nodash-sdk/README.md](packages/nodash-sdk/README.md)
+- **CLI Documentation**: [packages/nodash-cli/README.md](packages/nodash-cli/README.md)
+- **MCP Server Documentation**: [packages/nodash-mcp-server/README.md](packages/nodash-mcp-server/README.md)
 
 ## 🤝 Contributing
 
-1. Create a feature branch
-2. Make your changes
-3. Add tests
-4. Update documentation
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Add tests
 5. Submit a pull request
 
 ## 📄 License
 
-Proprietary - All rights reserved to Nodash AI Inc. 
+MIT License - see [LICENSE](LICENSE) for details.
+
+## 🔗 Links
+
+- [npm packages](https://www.npmjs.com/org/nodash)
+- [Documentation](https://docs.nodash.ai)
+- [API Reference](https://api.nodash.ai/docs)
+- [Support](https://support.nodash.ai) 
