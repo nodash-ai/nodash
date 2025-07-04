@@ -1,7 +1,7 @@
 {
-  "name": "nodash-dev",
+  "name": "nodash",
   "version": "1.0.0",
-  "description": "Private development infrastructure for the Nodash Analytics Platform",
+  "description": "Zero-configuration analytics platform with intelligent MCP integration",
   "private": true,
   "workspaces": [
     "packages/*"
@@ -27,10 +27,18 @@
   "engines": {
     "node": ">=18.0.0"
   },
+  "keywords": [
+    "analytics", 
+    "mcp", 
+    "model-context-protocol", 
+    "sdk",
+    "zero-configuration",
+    "typescript"
+  ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/nodash-ai/nodash-dev.git"
+    "url": "git+https://github.com/nodash-ai/nodash.git"
   },
   "author": "Nodash AI Inc.",
-  "license": "PROPRIETARY"
+  "license": "MIT"
 }
