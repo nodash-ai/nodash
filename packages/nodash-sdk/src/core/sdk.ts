@@ -31,7 +31,7 @@ export class NodashSDK {
     this.sessionId = generateId();
     
     this.config = {
-      apiUrl: '',
+      apiUrl: 'https://api.nodash.ai',
       debug: false,
       batchSize: 10,
       flushInterval: 10000,

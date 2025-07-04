@@ -7,11 +7,15 @@ import {
 } from '@modelcontextprotocol/sdk/types.js';
 import { ProjectAnalysisService } from '../services/project-analysis.js';
 import { EventsService } from '../services/events.js';
+import { AdvancedAnalysisService } from '../services/advanced-analysis.js';
+import { ImplementationGuideService } from '../services/code-generator.js';
 
 export function setupToolHandlers(
   server: Server,
   projectService: ProjectAnalysisService,
-  eventsService: EventsService
+  eventsService: EventsService,
+  advancedAnalysisService: AdvancedAnalysisService,
+  implementationGuideService: ImplementationGuideService
 ) {
   // List available tools
   server.setRequestHandler(ListToolsRequestSchema, async () => {
@@ -104,6 +108,44 @@ export function setupToolHandlers(
             required: ['event_name'],
           },
         },
+        {
+          name: 'advanced_analysis',
+          description: 'Perform deep code analysis including security, performance, and event opportunities',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              project_path: {
+                type: 'string',
+                description: 'Path to project directory (defaults to current directory)',
+              },
+            },
+          },
+        },
+        {
+          name: 'implementation_guide',
+          description: 'Generate step-by-step implementation guide for integrating analytics into your project',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              framework: {
+                type: 'string',
+                description: 'Target framework (react, nextjs, vue, express, angular, vanilla)',
+              },
+              language: {
+                type: 'string',
+                enum: ['javascript', 'typescript'],
+                description: 'Programming language preference',
+              },
+              complexity: {
+                type: 'string',
+                enum: ['basic', 'advanced', 'enterprise'],
+                description: 'Integration complexity level',
+                default: 'basic',
+              },
+            },
+            required: ['framework', 'language'],
+          },
+        },
       ],
     };
   });
@@ -149,100 +191,78 @@ The Nodash MCP server provides analytics capabilities through tools, resources, 
 ### 5. **track_event**
 - **Purpose**: Track test events for validation
 - **Usage**: Test event tracking functionality
-- **Example**: "Track a test login event"
+- **Example**: "Track a test 'button_click' event"
 
-## 📚 RESOURCES (Use these for documentation and reference)
+### 6. **advanced_analysis** 🔥 NEW!
+- **Purpose**: Deep code analysis with AI-powered insights
+- **Usage**: Get comprehensive analysis of tracking opportunities
+- **Example**: "Perform advanced analysis on my project"
 
-### Available Resources:
-- **nodash://sdk/readme** - Complete SDK documentation
-- **nodash://sdk/quick-start** - 5-minute setup guide  
-- **nodash://sdk/framework-guides** - React, Vue, Next.js guides
-- **nodash://sdk/api-reference** - TypeScript API reference
+### 7. **implementation_guide** 🔥 NEW!
+- **Purpose**: Get step-by-step implementation instructions
+- **Usage**: Receive detailed guidance for integrating analytics
+- **Example**: "Generate implementation guide for React with TypeScript"
 
-### How to Access Resources:
-Ask me to "read the SDK documentation" or "show me the quick start guide"
+## 📚 RESOURCES (Use these for documentation and context)
 
-## 🎯 PROMPTS (Use these for guided workflows)
+### 1. **nodash://framework-guides**
+- **Purpose**: Framework-specific integration guides
+- **Usage**: Get detailed documentation for your framework
+- **Example**: "Show me the React integration guide"
 
-### Available Prompts:
-- **analyze-and-implement** - Complete analytics implementation
-- **define-events** - Business-goal-aligned event creation
-- **generate-tracking-code** - Framework-specific code generation
-- **analytics-audit** - Comprehensive analytics review
+### 2. **nodash://event-catalog**
+- **Purpose**: Browse available event templates
+- **Usage**: See what events you can track
+- **Example**: "What events can I track for e-commerce?"
 
-### How to Use Prompts:
-Ask me to "help implement analytics" or "audit my current analytics setup"
+### 3. **nodash://best-practices**
+- **Purpose**: Analytics implementation best practices
+- **Usage**: Learn how to implement analytics effectively
+- **Example**: "What are the best practices for event tracking?"
 
-## 💡 Best Practices
+## 💡 PROMPTS (Use these for guidance and suggestions)
 
-### 1. **Start with Project Analysis**
-Always begin with: "Analyze my project structure"
+### 1. **analytics_setup**
+- **Purpose**: Get personalized setup recommendations
+- **Usage**: Receive tailored advice for your project
+- **Example**: "What's the best way to set up analytics for my Next.js app?"
 
-### 2. **Define Events Before Implementation**
-Use: "Help me define events for [your goal]"
+### 2. **event_planning**
+- **Purpose**: Plan your event tracking strategy
+- **Usage**: Get help designing your analytics schema
+- **Example**: "Help me plan events for my SaaS dashboard"
 
-### 3. **Get Framework-Specific Guidance**
-Ask: "Show me React/Vue/Next.js implementation examples"
+### 3. **troubleshooting**
+- **Purpose**: Debug analytics implementation issues
+- **Usage**: Get help when things aren't working
+- **Example**: "My events aren't showing up, what should I check?"
 
-### 4. **Test Your Setup**
-Use: "Track a test event to verify everything works"
+## 🚀 RECOMMENDED WORKFLOW
 
-## 🚀 Common Workflows
+1. **Start with project analysis**: Use 'analyze_project' to understand your codebase
+2. **Get comprehensive insights**: Use 'advanced_analysis' for AI-powered recommendations
+3. **Get implementation guidance**: Use 'implementation_guide' for step-by-step instructions
+4. **Define your events**: Use 'set_event_definition' to create event schemas
+5. **Test your setup**: Use 'track_event' to verify everything works
+6. **Query your data**: Use 'query_events' to analyze collected data
 
-### **Complete Setup**
-1. "Analyze my project structure"
-2. "Help me define events for user engagement"
-3. "Generate React tracking code"
-4. "Track a test event"
+## 💡 PRO TIPS
 
-### **Adding New Events**
-1. "Show me current event schema"
-2. "Define a new 'feature_used' event"
-3. "Update my tracking code"
+- Always run 'analyze_project' first - it provides context for all other tools
+- Use 'advanced_analysis' to discover tracking opportunities you might miss
+- The 'implementation_guide' provides detailed instructions - perfect for local agents
+- Combine tools: analyze → get guide → implement → test → query
+- Use resources for additional context and documentation
+- Use prompts when you need personalized advice
 
-### **Troubleshooting**
-1. "Audit my analytics setup"
-2. "Show me recent events"
-3. "Check if tracking is working"
+## 🔗 Integration with Local Agents
 
-## 🎪 Framework-Specific Help
+This MCP server is designed to work with local agents that have full codebase context:
+- **MCP Server Role**: Provides analysis, guidance, and recommendations
+- **Local Agent Role**: Implements the actual code changes
+- **Perfect Partnership**: MCP analyzes, agent implements
 
-### **React Projects**
-- Get hooks and component examples
-- Automatic context setup
-- TypeScript integration
-
-### **Vue Projects**  
-- Plugin configuration
-- Composition API examples
-- Reactive tracking
-
-### **Express APIs**
-- Middleware setup
-- Route tracking
-- Error handling
-
-### **Next.js Apps**
-- App Router integration
-- SSR considerations
-- Route change tracking
-
-## 🔍 Tips for Better Results
-
-1. **Be Specific**: "Track user signup with email validation" vs "track signup"
-2. **Mention Your Framework**: "I'm using React" helps me give better examples
-3. **Ask for Examples**: "Show me code examples" gets you implementation details
-4. **Use Business Context**: "For e-commerce conversion tracking" gets targeted advice
-
-## 🆘 Getting Help
-
-If you're stuck, just ask:
-- "How do I get started with Nodash?"
-- "What tools should I use for [specific task]?"
-- "Show me examples for [your framework]"
-- "Help me troubleshoot [specific issue]"
-
-Remember: I can access documentation, generate code, analyze your project, and provide step-by-step guidance!`,
+Ready to get started? Try: "Analyze my project and give me an implementation guide for React with TypeScript"`,
               },
             ],
           };
@@ -307,6 +327,151 @@ Remember: I can access documentation, generate code, analyze your project, and p
               {
                 type: 'text',
                 text: JSON.stringify(trackResult, null, 2),
+              },
+            ],
+          };
+
+        case 'advanced_analysis':
+          const advancedProjectPath = typeof args?.project_path === 'string' ? args.project_path : undefined;
+          const advancedAnalysis = await advancedAnalysisService.performAdvancedAnalysis(advancedProjectPath);
+          return {
+            content: [
+              {
+                type: 'text',
+                text: `# 🔍 Advanced Project Analysis
+
+## 📊 Analysis Summary
+- **Integration Complexity**: ${advancedAnalysis.integrationComplexity}
+- **Estimated Implementation Time**: ${advancedAnalysis.estimatedImplementationTime}
+- **Code Patterns Found**: ${advancedAnalysis.codePatterns.length}
+- **Event Opportunities**: ${advancedAnalysis.eventOpportunities.length}
+- **Security Issues**: ${advancedAnalysis.securityIssues.length}
+- **Performance Issues**: ${advancedAnalysis.performanceIssues.length}
+
+## 🎯 Event Opportunities
+${advancedAnalysis.eventOpportunities.map(event => `
+### ${event.eventName}
+- **Business Value**: ${event.businessValue}
+- **Business Goal**: ${event.businessGoal}
+- **Location**: ${event.implementationLocation}
+- **Description**: ${event.description}
+- **Properties**: ${Object.entries(event.suggestedProperties).map(([key, type]) => `${key}: ${type}`).join(', ')}
+`).join('\n')}
+
+## 🔧 Code Patterns
+${advancedAnalysis.codePatterns.map(pattern => `
+### ${pattern.name} (${pattern.type})
+- **File**: ${pattern.file}:${pattern.line}
+- **Priority**: ${pattern.priority}
+- **Opportunity**: ${pattern.trackingOpportunity}
+`).join('\n')}
+
+## 🏗️ Architecture Recommendations
+${advancedAnalysis.architectureRecommendations.map(rec => `
+### ${rec.title}
+- **Priority**: ${rec.priority}
+- **Category**: ${rec.category}
+- **Description**: ${rec.description}
+- **Implementation**: ${rec.implementation}
+- **Benefits**: ${rec.benefits.join(', ')}
+`).join('\n')}
+
+## 🔒 Security Issues
+${advancedAnalysis.securityIssues.length > 0 ? 
+  advancedAnalysis.securityIssues.map(issue => `
+### ${issue.type} - ${issue.severity}
+- **Description**: ${issue.description}
+- **File**: ${issue.file || 'N/A'}
+- **Recommendation**: ${issue.recommendation}
+`).join('\n') : 'No security issues detected.'}
+
+## ⚡ Performance Issues
+${advancedAnalysis.performanceIssues.length > 0 ?
+  advancedAnalysis.performanceIssues.map(issue => `
+### ${issue.type} - ${issue.impact} impact
+- **Description**: ${issue.description}
+- **File**: ${issue.file || 'N/A'}
+- **Recommendation**: ${issue.recommendation}
+`).join('\n') : 'No performance issues detected.'}
+
+## 🚀 Next Steps
+1. Review event opportunities and prioritize by business value
+2. Address high-priority architecture recommendations
+3. Use the 'implementation_guide' tool with the identified events
+4. Implement security and performance fixes
+5. Test the analytics implementation
+
+**Raw Data:**
+\`\`\`json
+${JSON.stringify(advancedAnalysis, null, 2)}
+\`\`\``,
+              },
+            ],
+          };
+
+        case 'implementation_guide':
+          if (!args?.framework || !args?.language) {
+            throw new McpError(ErrorCode.InvalidParams, 'framework and language are required');
+          }
+          
+          const guide = implementationGuideService.generateImplementationGuide(
+            args.framework as any,
+            args.language as any,
+            args.complexity as any
+          );
+          
+          return {
+            content: [
+              {
+                type: 'text',
+                text: `# 🚀 ${guide.framework} Implementation Guide
+
+## 📋 Overview
+${guide.overview}
+
+## 🔧 Prerequisites
+${guide.prerequisites.map(prereq => `- ${prereq}`).join('\n')}
+
+## 📝 Implementation Steps
+
+${guide.steps.map((step, index) => `
+### Step ${index + 1}: ${step.title}
+**Description**: ${step.description}
+
+**Files to work with:**
+${step.files.map(file => `- **${file.action.toUpperCase()}** \`${file.path}\` - ${file.purpose}`).join('\n')}
+
+${step.codePatterns ? `**Code Patterns to Implement:**
+${step.codePatterns.map(pattern => `- **${pattern.pattern}**: ${pattern.explanation} (${pattern.context})`).join('\n')}` : ''}
+
+**Validation Checklist:**
+${step.validation.map(item => `- [ ] ${item}`).join('\n')}
+
+${step.dependencies ? `**Dependencies**: ${step.dependencies.join(', ')}` : ''}
+`).join('\n')}
+
+## 🧪 Testing Strategy
+${guide.testingStrategy.map(test => `- ${test}`).join('\n')}
+
+## 🔧 Troubleshooting
+${guide.troubleshooting.map(item => `
+### ${item.issue}
+**Solution**: ${item.solution}
+`).join('\n')}
+
+## 🚀 Next Steps
+${guide.nextSteps.map(step => `- ${step}`).join('\n')}
+
+---
+
+**💡 Implementation Tips:**
+- Follow the steps in order - each builds on the previous
+- Test after each step to catch issues early
+- Use the validation checklists to ensure completeness
+- Ask your local agent to implement each step with full project context
+- The local agent has the best understanding of your specific codebase structure
+
+**Need help with a specific step?** Ask me about any part of this implementation guide!`,
               },
             ],
           };
