@@ -14,7 +14,12 @@
  * ```typescript
  * import { nodash } from '@nodash/sdk';
  * 
- * // Initialize
+ * // Initialize (uses https://api.nodash.ai by default)
+ * nodash.init('your-project-token', {
+ *   debug: true
+ * });
+ * 
+ * // Or override for local development
  * nodash.init('your-project-token', {
  *   apiUrl: 'http://localhost:3001',
  *   debug: true

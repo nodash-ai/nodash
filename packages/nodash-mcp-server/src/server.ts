@@ -7,6 +7,8 @@ import { DocumentationService } from './services/documentation.js';
 import { ProjectAnalysisService } from './services/project-analysis.js';
 import { EventsService } from './services/events.js';
 import { PromptsService } from './services/prompts.js';
+import { AdvancedAnalysisService } from './services/advanced-analysis.js';
+import { ImplementationGuideService } from './services/code-generator.js';
 
 // Handlers
 import { setupResourceHandlers } from './handlers/resources.js';
@@ -27,10 +29,12 @@ export async function createServer(): Promise<Server> {
   const projectService = new ProjectAnalysisService();
   const eventsService = new EventsService();
   const promptsService = new PromptsService();
+  const advancedAnalysisService = new AdvancedAnalysisService();
+  const implementationGuideService = new ImplementationGuideService();
 
   // Setup handlers
   setupResourceHandlers(server, docService);
-  setupToolHandlers(server, projectService, eventsService);
+  setupToolHandlers(server, projectService, eventsService, advancedAnalysisService, implementationGuideService);
   setupPromptHandlers(server, promptsService);
 
   return server;

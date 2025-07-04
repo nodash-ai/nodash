@@ -19,4 +19,9 @@ export interface EventData {
   properties: Record<string, any>;
   timestamp: string;
   source?: string;
-} 
+}
+
+// Framework and implementation types
+export type Framework = 'react' | 'nextjs' | 'vue' | 'express' | 'angular' | 'vanilla';
+export type Language = 'javascript' | 'typescript';
+export type IntegrationComplexity = 'basic' | 'advanced' | 'enterprise'; 

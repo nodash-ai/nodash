@@ -11,7 +11,12 @@ npm install @nodash/sdk
 ```typescript
 import { nodash } from '@nodash/sdk';
 
-// Initialize
+// Initialize (uses https://api.nodash.ai by default)
+nodash.init('your-project-token', {
+  debug: true
+});
+
+// Or override for local development
 nodash.init('your-project-token', {
   apiUrl: 'http://localhost:3001',
   debug: true
@@ -39,7 +44,11 @@ yarn add @nodash/sdk
 ```html
 <script src="https://unpkg.com/@nodash/sdk@latest/dist/index.js"></script>
 <script>
-  nodash.init('your-project-token', { apiUrl: 'your-server-url' });
+  // Uses https://api.nodash.ai by default
+  nodash.init('your-project-token');
+  
+  // Or override for local development
+  // nodash.init('your-project-token', { apiUrl: 'http://localhost:3001' });
 </script>
 ```
 
@@ -50,6 +59,14 @@ Initialize the SDK with your project token and configuration:
 ```typescript
 import { nodash } from '@nodash/sdk';
 
+// Uses https://api.nodash.ai by default
+nodash.init('your-project-token', {
+  debug: true,
+  batchSize: 20,
+  flushInterval: 10000
+});
+
+// Override for local development
 nodash.init('your-project-token', {
   apiUrl: 'http://localhost:3001',
   debug: true,
@@ -62,7 +79,7 @@ nodash.init('your-project-token', {
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
-| `apiUrl` | string | **required** | Analytics server endpoint |
+| `apiUrl` | string | `https://api.nodash.ai` | Analytics server endpoint |
 | `token` | string | - | Project authentication token |
 | `debug` | boolean | false | Enable debug logging |
 | `batchSize` | number | 10 | Events per batch |

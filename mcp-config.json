@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "nodash": {
+      "command": "npx",
+      "args": ["@nodash/mcp-server"],
+      "env": {
+        "NODE_ENV": "production"
+      }
+    }
+  }
+} 
