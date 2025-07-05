@@ -1,7 +1,7 @@
 {
   "name": "nodash",
   "version": "1.0.0",
-  "description": "Nodash - Zero-configuration analytics with intelligent MCP integration",
+  "description": "Zero-configuration analytics with intelligent AI guidance - Developer tools and integrations",
   "private": false,
   "workspaces": [
     "packages/*"
@@ -9,18 +9,32 @@
   "scripts": {
     "build": "npm run build --workspaces",
     "dev": "npm run dev --workspaces",
-    "start": "npm run start --workspaces"
+    "start": "npm run start --workspaces",
+    "test": "npm run test --workspaces",
+    "lint": "npm run lint --workspaces",
+    "clean": "npm run clean --workspaces"
   },
   "keywords": [
     "analytics",
     "mcp",
     "ai",
     "development-tools",
-    "model-context-protocol"
+    "model-context-protocol",
+    "typescript",
+    "javascript",
+    "react",
+    "vue",
+    "angular",
+    "developer-experience",
+    "open-source"
   ],
   "repository": {
     "type": "git",
     "url": "https://github.com/nodash-ai/nodash.git"
+  },
+  "homepage": "https://nodash.ai",
+  "bugs": {
+    "url": "https://github.com/nodash-ai/nodash/issues"
   },
   "license": "MIT",
   "engines": {
@@ -29,5 +43,8 @@
   "devDependencies": {
     "typescript": "^5.0.0",
     "@types/node": "^20.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }
