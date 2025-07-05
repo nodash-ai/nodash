@@ -1,44 +1,33 @@
 {
   "name": "nodash",
   "version": "1.0.0",
-  "description": "Zero-configuration analytics platform with intelligent MCP integration",
-  "private": true,
+  "description": "Nodash - Zero-configuration analytics with intelligent MCP integration",
+  "private": false,
   "workspaces": [
     "packages/*"
   ],
   "scripts": {
     "build": "npm run build --workspaces",
     "dev": "npm run dev --workspaces",
-    "test": "npm run test --workspaces",
-    "test:integration": "jest --config jest.integration.config.js",
-    "test:load": "npm run test:load --workspaces",
-    "lint": "eslint . --ext .ts,.js",
-    "lint:fix": "eslint . --ext .ts,.js --fix",
-    "clean": "npm run clean --workspaces"
-  },
-  "devDependencies": {
-    "@types/node": "^20.0.0",
-    "@typescript-eslint/eslint-plugin": "^6.0.0",
-    "@typescript-eslint/parser": "^6.0.0",
-    "eslint": "^8.0.0",
-    "jest": "^29.0.0",
-    "typescript": "^5.0.0"
-  },
-  "engines": {
-    "node": ">=18.0.0"
+    "start": "npm run start --workspaces"
   },
   "keywords": [
-    "analytics", 
-    "mcp", 
-    "model-context-protocol", 
-    "sdk",
-    "zero-configuration",
-    "typescript"
+    "analytics",
+    "mcp",
+    "ai",
+    "development-tools",
+    "model-context-protocol"
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/nodash-ai/nodash.git"
+    "url": "https://github.com/nodash-ai/nodash.git"
   },
-  "author": "Nodash AI Inc.",
-  "license": "MIT"
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0",
+    "@types/node": "^20.0.0"
+  }
 }

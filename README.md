@@ -1,156 +1,144 @@
-# Nodash Analytics Platform
+# Nodash
 
-Zero-configuration analytics with intelligent MCP integration. Track user behavior, analyze patterns, and get AI-powered insights for your applications.
+**Zero-configuration analytics with intelligent MCP integration**
 
-## 🚀 Quick Start
+Nodash provides intelligent analytics guidance through AI assistants via the Model Context Protocol (MCP). Get personalized implementation recommendations, event discovery, and framework-specific guidance powered by AI.
 
-### 1. Install the SDK
+## 🎯 **What is Nodash?**
+
+Nodash is an analytics platform that combines:
+- **Zero-configuration SDK** for instant event tracking
+- **AI-powered guidance** through MCP integration  
+- **Intelligent event discovery** from your codebase
+- **Framework-specific recommendations** for React, Vue, Angular, and more
+
+## 🤖 **MCP Integration**
+
+The Nodash MCP server provides AI assistants with deep analytics knowledge:
+
+- **Project analysis** - Understand your codebase structure
+- **Event opportunity discovery** - Find 100+ trackable events automatically  
+- **Implementation guidance** - Get step-by-step setup instructions
+- **Framework expertise** - Tailored advice for your tech stack
+
+### Quick MCP Setup
+
+1. **Install the MCP server**:
+   ```bash
+   npm install -g @nodash/mcp-server
+   ```
+
+2. **Add to your AI assistant** (Claude Desktop, etc.):
+   ```json
+   {
+     "mcpServers": {
+       "nodash": {
+         "command": "nodash-mcp-server",
+         "args": []
+       }
+     }
+   }
+   ```
+
+3. **Ask your AI assistant**:
+   - "Analyze my project for analytics opportunities"
+   - "How should I implement user tracking in React?"
+   - "What events should I track for my e-commerce app?"
+
+## 📦 **SDK Usage**
+
+Install the Nodash SDK for runtime analytics:
 
 ```bash
 npm install @nodash/sdk
 ```
 
-### 2. Initialize Analytics
-
 ```typescript
 import { nodash } from '@nodash/sdk';
 
-// Uses https://api.nodash.ai by default
+// Initialize with your project token
 nodash.init('your-project-token');
 
-// Or override for local development
-nodash.init('your-project-token', {
-  apiUrl: 'http://localhost:3001'
-});
-```
-
-### 3. Track Events
-
-```typescript
 // Track user actions
-nodash.track('Button Click', { button: 'signup' });
+nodash.track('Button Click', { 
+  button: 'signup',
+  page: 'landing' 
+});
 
-// Identify users
-nodash.identify('user-123', { name: 'John Doe' });
+// Identify users  
+nodash.identify('user-123', {
+  name: 'John Doe',
+  plan: 'pro'
+});
 
 // Track page views
 nodash.page('Home Page');
 ```
 
-## 📦 Packages
+## 🔧 **CLI Tools**
 
-### [@nodash/sdk](packages/nodash-sdk)
-Analytics SDK for tracking events, users, and page views.
-
-```bash
-npm install @nodash/sdk
-```
-
-### [@nodash/cli](packages/nodash-cli)
-CLI tool for project analysis and setup guidance.
+Use the Nodash CLI for project analysis:
 
 ```bash
-npx @nodash/cli analyze .
+npm install -g @nodash/cli
+
+# Analyze your project
+nodash analyze
+
+# Get framework-specific guidance  
+nodash guide --framework react
+
+# Discover trackable events
+nodash discover
 ```
 
-### [@nodash/mcp-server](packages/nodash-mcp-server)
-MCP server for AI-powered analytics implementation guidance.
+## 🏗️ **Architecture**
 
-```bash
-npx @nodash/mcp-server
+Nodash follows a **server-driven architecture**:
+
+- **Public Repository** (this repo): MCP server, examples, documentation
+- **Private Infrastructure**: Analytics servers, SDK generation, data processing
+- **Published Packages**: SDK and CLI tools available via npm
+
+```
+┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
+│   AI Assistant  │───▶│  Nodash MCP      │───▶│  Analytics      │
+│  (Claude, etc.) │    │     Server       │    │   Platform      │
+└─────────────────┘    └──────────────────┘    └─────────────────┘
+                              │
+                              ▼
+                       ┌──────────────────┐
+                       │   Your Project   │
+                       │  + Nodash SDK    │
+                       └──────────────────┘
 ```
 
-## 🔧 Configuration
+## 🌟 **Key Features**
 
-### Production (Default)
-The SDK uses `https://api.nodash.ai` by default - no configuration needed.
+✅ **Zero Configuration** - Start tracking events in minutes  
+✅ **AI-Powered Guidance** - Get personalized implementation advice  
+✅ **Automatic Event Discovery** - Find 100+ trackable events in your code  
+✅ **Framework Agnostic** - Works with React, Vue, Angular, Node.js, etc.  
+✅ **Privacy-First** - Your code analysis stays local  
+✅ **Production Ready** - Reliable event tracking and data collection  
 
-### Local Development
-Override the API URL for local development:
+## 📚 **Documentation**
 
-```typescript
-nodash.init('your-project-token', {
-  apiUrl: 'http://localhost:3001',
-  debug: true
-});
-```
+- [**MCP Server Guide**](./packages/nodash-mcp-server/README.md) - Set up AI integration
+- [**SDK Documentation**](https://docs.nodash.ai/sdk) - Runtime event tracking  
+- [**CLI Reference**](https://docs.nodash.ai/cli) - Project analysis tools
+- [**API Reference**](https://docs.nodash.ai/api) - Server endpoints
 
-## 🌟 Features
+## 🤝 **Contributing**
 
-- **Zero Configuration**: Works out of the box with sensible defaults
-- **TypeScript Support**: Full type safety and IntelliSense
-- **Framework Agnostic**: Works with React, Vue, Angular, and vanilla JS
-- **AI-Powered Analysis**: CLI and MCP server provide intelligent insights
-- **Privacy First**: GDPR compliant with user consent management
-- **Real-time Analytics**: Live dashboards and event streaming
-- **Automatic Batching**: Optimized network usage with intelligent batching
+We welcome contributions! Please see our [Contributing Guide](./CONTRIBUTING.md) for details.
 
-## 📊 Tracking Capabilities
+## 📄 **License**
 
-### User Analytics
-- User identification and profiles
-- Session tracking and duration
-- User journey mapping
-- Cohort analysis
+MIT License - see [LICENSE](./LICENSE) for details.
 
-### Event Tracking
-- Custom events with properties
-- E-commerce tracking
-- Form interactions
-- Button clicks and navigation
+---
 
-### Performance Insights
-- Page load times
-- User engagement metrics
-- Feature usage analytics
-- Error tracking
+**Get started with AI-powered analytics guidance in minutes!**
 
-## 🛠️ Development
-
-### Local Setup
-
-```bash
-# Clone the repository
-git clone https://github.com/nodash/nodash.git
-cd nodash
-
-# Install dependencies
-npm install
-
-# Build all packages
-npm run build
-
-# Start local analytics server
-npm run start-analytics
-```
-
-### Running Tests
-
-```bash
-npm test
-```
-
-## 📚 Documentation
-
-- **SDK Documentation**: [packages/nodash-sdk/README.md](packages/nodash-sdk/README.md)
-- **CLI Documentation**: [packages/nodash-cli/README.md](packages/nodash-cli/README.md)
-- **MCP Server Documentation**: [packages/nodash-mcp-server/README.md](packages/nodash-mcp-server/README.md)
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests
-5. Submit a pull request
-
-## 📄 License
-
-MIT License - see [LICENSE](LICENSE) for details.
-
-## 🔗 Links
-
-- [npm packages](https://www.npmjs.com/org/nodash)
-- [Documentation](https://docs.nodash.ai)
-- [API Reference](https://api.nodash.ai/docs)
-- [Support](https://support.nodash.ai) 
+Try asking your AI assistant: *"Help me set up analytics for my React app using Nodash"* 
