@@ -1,6 +1,6 @@
 export class PromptsService {
   async generateImplementationPrompt(args: any): Promise<string> {
-    const { framework = 'auto-detect', business_type = 'general' } = args;
+    const { framework = 'auto-detect' } = args;
     
     return `# Nodash Analytics Implementation Guide
 

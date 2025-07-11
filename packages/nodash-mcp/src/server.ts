@@ -299,15 +299,14 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           nodashSDK = initializeSDK(process.env.NODASH_TOKEN);
         }
         
-        const { event, properties = {}, userId, anonymousId, sessionId } = args as {
+        const { event, properties = {}, userId, sessionId } = args as {
           event: string;
           properties?: Record<string, any>;
           userId?: string;
-          anonymousId?: string;
           sessionId?: string;
         };
 
-        const result = await nodashSDK.track(event, properties, { 
+        await nodashSDK.track(event, properties, { 
           userId, 
           sessionId,
           source: 'mcp-server'
@@ -354,11 +353,10 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           nodashSDK = initializeSDK(process.env.NODASH_TOKEN);
         }
         
-        const { name, properties = {}, userId, anonymousId } = args as {
+        const { name, properties = {}, userId } = args as {
           name?: string;
           properties?: Record<string, any>;
           userId?: string;
-          anonymousId?: string;
         };
 
         // Track page view as an event
@@ -426,7 +424,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           tags?: Record<string, string>;
         };
 
-        const result = await nodashSDK.sendMetric(name, value, { unit, tags });
+        await nodashSDK.sendMetric(name, value, { unit, tags });
         
         return {
           content: [

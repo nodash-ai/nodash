@@ -149,12 +149,16 @@ export class ProjectAnalysisService {
     try {
       await fs.access(path.join(basePath, 'yarn.lock'));
       return 'yarn';
-    } catch {}
+    } catch {
+      // yarn.lock not found, continue to next check
+    }
     
     try {
       await fs.access(path.join(basePath, 'pnpm-lock.yaml'));
       return 'pnpm';
-    } catch {}
+    } catch {
+      // pnpm-lock.yaml not found, continue to npm
+    }
     
     return 'npm';
   }

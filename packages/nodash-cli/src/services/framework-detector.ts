@@ -37,7 +37,7 @@ export class FrameworkDetector {
       ...packageJson.devDependencies
     };
 
-    for (const [framework, patterns] of Object.entries(this.FRAMEWORK_PATTERNS)) {
+    for (const patterns of Object.values(this.FRAMEWORK_PATTERNS)) {
       const matches = patterns.filter(pattern => allDeps[pattern]);
       if (matches.length > 0) {
         return {

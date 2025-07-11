@@ -1,6 +1,5 @@
 import fs from 'fs/promises';
 import path from 'path';
-import { ProjectAnalysis } from '../types.js';
 
 export interface AdvancedAnalysis {
   codePatterns: CodePattern[];

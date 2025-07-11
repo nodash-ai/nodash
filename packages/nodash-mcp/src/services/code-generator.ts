@@ -37,25 +37,24 @@ export class ImplementationGuideService {
   generateImplementationGuide(
     framework: Framework,
     language: Language = 'typescript',
-    complexity: IntegrationComplexity = 'basic',
-    projectContext?: any
+    complexity: IntegrationComplexity = 'basic'
   ): ImplementationGuide {
     const guide = this.createBaseGuide(framework, language, complexity);
     
     // Add framework-specific steps
     switch (framework) {
       case 'react':
-        return this.addReactSteps(guide, projectContext);
+        return this.addReactSteps(guide);
       case 'nextjs':
-        return this.addNextJsSteps(guide, projectContext);
+        return this.addNextJsSteps(guide);
       case 'vue':
-        return this.addVueSteps(guide, projectContext);
+        return this.addVueSteps(guide);
       case 'express':
-        return this.addExpressSteps(guide, projectContext);
+        return this.addExpressSteps(guide);
       case 'angular':
-        return this.addAngularSteps(guide, projectContext);
+        return this.addAngularSteps(guide);
       default:
-        return this.addVanillaSteps(guide, projectContext);
+        return this.addVanillaSteps(guide);
     }
   }
 
@@ -100,7 +99,7 @@ export class ImplementationGuideService {
     };
   }
 
-  private addReactSteps(guide: ImplementationGuide, context?: any): ImplementationGuide {
+  private addReactSteps(guide: ImplementationGuide): ImplementationGuide {
     const isTypeScript = guide.language === 'typescript';
     const ext = isTypeScript ? 'tsx' : 'jsx';
     
@@ -270,7 +269,7 @@ export class ImplementationGuideService {
     return guide;
   }
 
-  private addNextJsSteps(guide: ImplementationGuide, context?: any): ImplementationGuide {
+  private addNextJsSteps(guide: ImplementationGuide): ImplementationGuide {
     const isTypeScript = guide.language === 'typescript';
     const ext = isTypeScript ? 'tsx' : 'jsx';
     
@@ -415,7 +414,7 @@ export class ImplementationGuideService {
     return guide;
   }
 
-  private addVueSteps(guide: ImplementationGuide, context?: any): ImplementationGuide {
+  private addVueSteps(guide: ImplementationGuide): ImplementationGuide {
     guide.steps = [
       {
         id: 'install-dependencies',
@@ -515,7 +514,7 @@ export class ImplementationGuideService {
     return guide;
   }
 
-  private addExpressSteps(guide: ImplementationGuide, context?: any): ImplementationGuide {
+  private addExpressSteps(guide: ImplementationGuide): ImplementationGuide {
     guide.steps = [
       {
         id: 'install-dependencies',
@@ -615,7 +614,7 @@ export class ImplementationGuideService {
     return guide;
   }
 
-  private addAngularSteps(guide: ImplementationGuide, context?: any): ImplementationGuide {
+  private addAngularSteps(guide: ImplementationGuide): ImplementationGuide {
     guide.steps = [
       {
         id: 'install-dependencies',
@@ -720,7 +719,7 @@ export class ImplementationGuideService {
     return guide;
   }
 
-  private addVanillaSteps(guide: ImplementationGuide, context?: any): ImplementationGuide {
+  private addVanillaSteps(guide: ImplementationGuide): ImplementationGuide {
     guide.steps = [
       {
         id: 'install-dependencies',

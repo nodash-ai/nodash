@@ -267,7 +267,7 @@ Ready to get started? Try: "Analyze my project and give me an implementation gui
             ],
           };
 
-        case 'analyze_project':
+        case 'analyze_project': {
           const projectPath = typeof args?.project_path === 'string' ? args.project_path : undefined;
           const analysis = await projectService.analyzeProject(projectPath);
           return {
@@ -278,8 +278,9 @@ Ready to get started? Try: "Analyze my project and give me an implementation gui
               },
             ],
           };
+        }
 
-        case 'get_events_schema':
+        case 'get_events_schema': {
           const schema = await eventsService.getEventsSchema();
           return {
             content: [
@@ -289,8 +290,9 @@ Ready to get started? Try: "Analyze my project and give me an implementation gui
               },
             ],
           };
+        }
 
-        case 'set_event_definition':
+        case 'set_event_definition': {
           if (!args?.event_name || !args?.properties) {
             throw new McpError(ErrorCode.InvalidParams, 'event_name and properties are required');
           }
@@ -304,8 +306,9 @@ Ready to get started? Try: "Analyze my project and give me an implementation gui
               },
             ],
           };
+        }
 
-        case 'query_events':
+        case 'query_events': {
           const events = await eventsService.queryEvents(args);
           return {
             content: [
@@ -315,8 +318,9 @@ Ready to get started? Try: "Analyze my project and give me an implementation gui
               },
             ],
           };
+        }
 
-        case 'track_event':
+        case 'track_event': {
           if (!args?.event_name) {
             throw new McpError(ErrorCode.InvalidParams, 'event_name is required');
           }
@@ -330,8 +334,9 @@ Ready to get started? Try: "Analyze my project and give me an implementation gui
               },
             ],
           };
+        }
 
-        case 'advanced_analysis':
+        case 'advanced_analysis': {
           const advancedProjectPath = typeof args?.project_path === 'string' ? args.project_path : undefined;
           const advancedAnalysis = await advancedAnalysisService.performAdvancedAnalysis(advancedProjectPath);
           return {
@@ -408,8 +413,9 @@ ${JSON.stringify(advancedAnalysis, null, 2)}
               },
             ],
           };
+        }
 
-        case 'implementation_guide':
+        case 'implementation_guide': {
           if (!args?.framework || !args?.language) {
             throw new McpError(ErrorCode.InvalidParams, 'framework and language are required');
           }
@@ -475,6 +481,7 @@ ${guide.nextSteps.map(step => `- ${step}`).join('\n')}
               },
             ],
           };
+        }
 
         default:
           throw new McpError(ErrorCode.MethodNotFound, `Unknown tool: ${name}`);

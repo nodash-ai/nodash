@@ -1,4 +1,4 @@
-import { EventDefinition, EventData } from '../types.js';
+// EventDefinition and EventData types removed as they're not used in this file
 import { ANALYTICS_SERVER_URL } from '../utils/constants.js';
 
 export class EventsService {

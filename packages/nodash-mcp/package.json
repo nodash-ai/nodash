@@ -1,7 +1,7 @@
 {
-  "name": "@nodash/mcp-server",
+  "name": "nodash-mcp",
   "version": "1.0.0",
-  "description": "Nodash MCP Server - Model Context Protocol integration for AI-assisted analytics",
+  "description": "Nodash MCP - Model Context Protocol integration for AI-assisted analytics (not for npm)",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "bin": {
@@ -49,9 +49,9 @@
     "@modelcontextprotocol/sdk": "^1.15.1",
     "@types/jest": "^29.0.0",
     "@types/node": "^20.0.0",
-    "@typescript-eslint/eslint-plugin": "^6.0.0",
-    "@typescript-eslint/parser": "^6.0.0",
-    "eslint": "^8.0.0",
+    "@typescript-eslint/eslint-plugin": "^6.21.0",
+    "@typescript-eslint/parser": "^6.21.0",
+    "eslint": "^8.57.1",
     "jest": "^29.0.0",
     "typescript": "^5.0.0"
   },
