@@ -13,10 +13,11 @@ import {
 } from '../types.js';
 import { generateId } from '../utils/id-generator.js';
 import { getContext } from '../utils/context.js';
+import PQueue from 'p-queue';
 
 export class NodashSDK {
   private config: NodashConfig;
-  private queue: AnalyticsCall[] = [];
+  private queue = new PQueue({ concurrency: 1 });
   private flushTimer: NodeJS.Timeout | null = null;
   private isInitialized = false;
   private anonymousId: string;
@@ -144,10 +145,10 @@ export class NodashSDK {
   }
 
   async flush(): Promise<void> {
-    if (this.queue.length === 0) return;
+    if (this.queue.size === 0) return;
 
-    const events = [...this.queue];
-    this.queue = [];
+    const events = [...this.queue.tasks.map(task => task.value)];
+    this.queue.clear();
 
     try {
       await this.sendEvents(events);
@@ -157,15 +158,15 @@ export class NodashSDK {
       }
     } catch (error) {
       // Re-queue events on failure
-      this.queue.unshift(...events);
+      this.queue.add(() => this.sendEvents(events));
       throw error;
     }
   }
 
   private enqueue(call: AnalyticsCall): void {
-    this.queue.push(call);
+    this.queue.add(call);
     
-    if (this.queue.length >= (this.config.batchSize || 10)) {
+    if (this.queue.size >= (this.config.batchSize || 10)) {
       this.flush().catch(error => {
         if (this.config.debug) {
           console.error('[Nodash] Flush error:', error);
@@ -175,17 +176,14 @@ export class NodashSDK {
   }
 
   private async sendEvents(events: AnalyticsCall[]): Promise<void> {
-    const response = await fetch(`${this.config.apiUrl}/events/batch`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ events }),
+    await this.queue.add(async () => {
+      const response = await fetch(`${this.config.apiUrl}/events/batch`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ events }),
+      });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
     });
-
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-    }
   }
 
   private startFlushTimer(): void {
@@ -194,7 +192,7 @@ export class NodashSDK {
     }
 
     this.flushTimer = setInterval(() => {
-      if (this.queue.length > 0) {
+      if (this.queue.size > 0) {
         this.flush().catch(error => {
           if (this.config.debug) {
             console.error('[Nodash] Auto-flush error:', error);
