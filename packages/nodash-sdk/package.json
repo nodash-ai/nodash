@@ -1,6 +1,6 @@
 {
   "name": "@nodash/sdk",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Nodash Analytics SDK - Runtime event tracking",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
