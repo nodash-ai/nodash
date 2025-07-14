@@ -11,28 +11,73 @@ npm install @nodash/sdk
 ## 2. Initialize
 
 ```typescript
-import { nodash } from '@nodash/sdk';
+import NodashSDK from '@nodash/sdk';
 
-nodash.init('your-project-token', {
-  apiUrl: 'http://localhost:3001'
+// Create SDK instance (uses https://api.nodash.ai by default)
+const nodash = new NodashSDK('your-project-token');
+
+// Or override baseUrl for local development
+const nodashLocal = new NodashSDK('your-project-token', {
+  baseUrl: 'http://localhost:3001'
 });
 ```
 
 ## 3. Track Your First Event
 
+Follow these simple steps to track events - keep it minimal and add properties only as needed:
+
 ```typescript
 // Track a simple event
 nodash.track('Button Click', { button: 'signup' });
 
-// Identify a user
-nodash.identify('user-123', { 
+// Identify a user using special event
+nodash.track('user_identified', { 
+  userId: 'user-123',
   name: 'John Doe', 
   email: 'john@example.com' 
 });
 
 // Track a page view
-nodash.page('Home');
+nodash.track('page_view', { path: 'Home' });
 ```
+
+## 3.1 Simple Usage in Components
+
+Here are minimal examples for using the SDK in components - import once and track easily:
+
+### React Example
+```tsx
+import nodash from '@nodash/sdk';
+
+function SimpleButton() {
+  const handleClick = () => {
+    nodash.track('simple_button_clicked');
+  };
+
+  return <button onClick={handleClick}>Click Me</button>;
+}
+```
+
+### Vue Example
+```vue
+<template>
+  <button @click="trackClick">Click Me</button>
+</template>
+
+<script>
+import nodash from '@nodash/sdk';
+
+export default {
+  methods: {
+    trackClick() {
+      nodash.track('simple_button_clicked');
+    }
+  }
+};
+</script>
+```
+
+**Tip for Agents:** Start with these basics; expand with properties as your app grows. No complex setup required!
 
 ## 4. Common Patterns
 
@@ -82,13 +127,15 @@ nodash.track('Plan Upgraded', {
 
 ```tsx
 import { useEffect } from 'react';
-import { nodash } from '@nodash/sdk';
+import NodashSDK from '@nodash/sdk';
+
+const nodash = new NodashSDK('your-token', {
+  baseUrl: 'http://localhost:3001'
+});
 
 function App() {
   useEffect(() => {
-    nodash.init('your-token', {
-      apiUrl: 'http://localhost:3001'
-    });
+    // Initialization is done outside, but you can track here
   }, []);
 
   return (
@@ -107,14 +154,13 @@ function App() {
 </template>
 
 <script>
-import { nodash } from '@nodash/sdk';
+import NodashSDK from '@nodash/sdk';
+
+const nodash = new NodashSDK('your-token', {
+  baseUrl: 'http://localhost:3001'
+});
 
 export default {
-  mounted() {
-    nodash.init('your-token', {
-      apiUrl: 'http://localhost:3001'
-    });
-  },
   methods: {
     trackClick() {
       nodash.track('Button Click', { button: 'cta' });
@@ -134,6 +180,11 @@ nodash.init('your-token', {
   debug: true  // See events in console
 });
 ```
+
+**Common Pitfalls and Fixes:**
+- **Events not sending?** Check if the SDK is instantiated correctly and your server is running.
+- **CORS issues?** Ensure your server allows your app's origin.
+- **Debug tips:** Use browser console to inspect network requests for nodash events and add console.log around track calls.
 
 ## Next Steps
 

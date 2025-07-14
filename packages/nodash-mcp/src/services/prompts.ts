@@ -20,27 +20,55 @@ ${framework === 'auto-detect' ? 'Based on your project structure, follow the app
 
 ## 3. Basic Implementation
 
-\`\`\`typescript
-import { nodash } from '@nodash/sdk';
+Import and initialize the SDK in your main app file (e.g., index.ts or App.tsx):
 
-// Initialize (call once at app startup)
-nodash.init('your-project-token', {
-  apiUrl: 'http://localhost:3001',
-  debug: true // Enable during development
+\`\`\`typescript
+import nodash from '@nodash/sdk';
+
+// Initialize once at app startup
+nodash.init({
+  apiUrl: 'http://localhost:3001', // Or your server URL
+  debug: true // Optional, for development
 });
 
-// Track events
-nodash.track('Button Click', { button: 'signup' });
+// Track a simple event
+nodash.track('button_clicked', {
+  button_id: 'signup',
+  location: 'header'
+});
 
-// Identify users
+// Identify a user
 nodash.identify('user-123', { 
   email: 'user@example.com',
-  plan: 'pro' 
+  name: 'John Doe',
+  plan: 'premium'
 });
 
-// Track page views
-nodash.page('Home', 'Marketing');
+// Track a page view
+nodash.page({
+  path: window.location.pathname,
+  title: document.title
+});
 \`\`\`
+
+// Use in components - Example in a React button:
+\`\`\`tsx
+import nodash from '@nodash/sdk';
+
+function SignupButton() {
+  const handleClick = () => {
+    nodash.track('signup_button_clicked');
+    // Your signup logic...
+  };
+
+  return <button onClick={handleClick}>Sign Up</button>;
+}
+\`\`\`
+
+**Best Practices:**
+- Call init() as early as possible in your app lifecycle.
+- Use meaningful event names and properties.
+- Handle errors gracefully, e.g., with try-catch around track calls.
 
 **Need help?** Use the debug-analytics prompt for troubleshooting assistance.`;
   }

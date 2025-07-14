@@ -5,7 +5,7 @@ import {
   ListToolsRequestSchema,
   Tool,
 } from '@modelcontextprotocol/sdk/types.js';
-import NodashSDK from '@nodash/sdk';
+import { NodashSDK } from '@nodash/sdk';
 
 // Initialize the SDK
 let nodashSDK: NodashSDK | null = null;
@@ -24,7 +24,7 @@ function initializeSDK(token?: string, baseUrl?: string) {
 }
 
 // Tool definitions
-const tools: Tool[] = [
+export const tools: Tool[] = [
   {
     name: 'nodash_set_config',
     description: 'Configure Nodash SDK with API token and base URL',
@@ -257,6 +257,85 @@ const tools: Tool[] = [
   }
 ];
 
+export async function handleToolCall(request: any) {
+  const { toolName, input } = request;
+
+  // Ensure SDK is initialized for tools that need it
+  if (!nodashSDK && toolName !== 'nodash_set_config') {
+    try {
+      // Attempt to initialize from environment variables
+      initializeSDK(process.env.NODASH_TOKEN);
+    } catch (error) {
+      return {
+        toolName,
+        status: 'error',
+        error: 'SDK not configured. Please use nodash_set_config tool first or set NODASH_TOKEN environment variable.'
+      };
+    }
+  }
+  
+  try {
+    let result: any;
+    switch (toolName) {
+      case 'nodash_set_config':
+        initializeSDK(input.token, input.baseUrl);
+        result = { success: true, message: 'Nodash SDK configured successfully.' };
+        break;
+      case 'nodash_track_event':
+        result = await nodashSDK!.track(input.event, input.properties);
+        break;
+      case 'nodash_identify_user':
+        result = await nodashSDK!.track('user_identified', { userId: input.userId, ...input.traits });
+        break;
+      case 'nodash_track_page':
+        result = await nodashSDK!.track('page_view', { page: input.name, ...input.properties });
+        break;
+      case 'nodash_report_error':
+        result = await nodashSDK!.track('error_reported', {
+          error_message: input.message,
+          error_stack: input.stack,
+          error_type: input.type,
+          ...input.context,
+          tags: input.tags
+        });
+        break;
+      case 'nodash_submit_metric':
+        result = await nodashSDK!.sendMetric(input.name, input.value, { unit: input.unit, tags: input.tags });
+        break;
+      case 'nodash_get_dashboards':
+        result = { message: 'Dashboard functionality is not yet available in this version. Please use the analytics and monitoring features instead.' };
+        break;
+      case 'nodash_get_dashboard':
+        result = { message: 'Dashboard functionality is not yet available in this version. Please use the analytics and monitoring features instead.' };
+        break;
+      case 'nodash_generate_report':
+        result = { message: 'Report generation is not yet available in this version. Please use the analytics query features instead.' };
+        break;
+      case 'nodash_health_check':
+        result = await nodashSDK!.monitoring.getHealth();
+        break;
+      default:
+        return {
+          toolName,
+          status: 'error',
+          error: `Tool "${toolName}" not found.`
+        };
+    }
+
+    return {
+      toolName,
+      status: 'success',
+      output: result
+    };
+  } catch (error) {
+    return {
+      toolName,
+      status: 'error',
+      error: error instanceof Error ? error.message : 'An unknown error occurred'
+    };
+  }
+}
+
 // Create server instance
 const server = new Server(
   {
@@ -277,238 +356,16 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
 
 // Call tool handler
 server.setRequestHandler(CallToolRequestSchema, async (request) => {
-  const { name, arguments: args } = request.params;
-
-  try {
-    switch (name) {
-      case 'nodash_set_config': {
-        const { token, baseUrl } = args as { token: string; baseUrl?: string };
-        initializeSDK(token, baseUrl);
-        return {
-          content: [
-            {
-              type: 'text',
-              text: `Nodash SDK configured successfully with base URL: ${baseUrl || 'https://api.nodash.ai'}`
-            }
-          ]
-        };
+  const result = await handleToolCall(request);
+  return {
+    content: [
+      {
+        type: 'text',
+        text: result.output.message || JSON.stringify(result.output)
       }
-
-      case 'nodash_track_event': {
-        if (!nodashSDK) {
-          nodashSDK = initializeSDK(process.env.NODASH_TOKEN);
-        }
-        
-        const { event, properties = {}, userId, sessionId } = args as {
-          event: string;
-          properties?: Record<string, any>;
-          userId?: string;
-          sessionId?: string;
-        };
-
-        await nodashSDK.track(event, properties, { 
-          userId, 
-          sessionId,
-          source: 'mcp-server'
-        });
-        
-        return {
-          content: [
-            {
-              type: 'text',
-              text: `Event "${event}" tracked successfully.`
-            }
-          ]
-        };
-      }
-
-      case 'nodash_identify_user': {
-        if (!nodashSDK) {
-          nodashSDK = initializeSDK(process.env.NODASH_TOKEN);
-        }
-        
-        const { userId, traits = {} } = args as {
-          userId: string;
-          traits?: Record<string, any>;
-        };
-
-        // Track identify as a special event
-        await nodashSDK.track('user_identified', { userId, ...traits }, { 
-          userId,
-          source: 'mcp-server'
-        });
-        
-        return {
-          content: [
-            {
-              type: 'text',
-              text: `User "${userId}" identified successfully.`
-            }
-          ]
-        };
-      }
-
-      case 'nodash_track_page': {
-        if (!nodashSDK) {
-          nodashSDK = initializeSDK(process.env.NODASH_TOKEN);
-        }
-        
-        const { name, properties = {}, userId } = args as {
-          name?: string;
-          properties?: Record<string, any>;
-          userId?: string;
-        };
-
-        // Track page view as an event
-        await nodashSDK.track('page_view', { 
-          page: name,
-          ...properties 
-        }, { 
-          userId,
-          source: 'mcp-server'
-        });
-        
-        return {
-          content: [
-            {
-              type: 'text',
-              text: `Page view tracked successfully${name ? ` for "${name}"` : ''}.`
-            }
-          ]
-        };
-      }
-
-      case 'nodash_report_error': {
-        if (!nodashSDK) {
-          nodashSDK = initializeSDK(process.env.NODASH_TOKEN);
-        }
-        
-        const { message, stack, type, context = {}, tags = {} } = args as {
-          message: string;
-          stack?: string;
-          type?: string;
-          context?: Record<string, any>;
-          tags?: Record<string, string>;
-        };
-
-        // Track error as an event
-        await nodashSDK.track('error_reported', {
-          error_message: message,
-          error_stack: stack,
-          error_type: type,
-          ...context,
-          tags
-        }, {
-          source: 'mcp-server'
-        });
-        
-        return {
-          content: [
-            {
-              type: 'text',
-              text: `Error reported successfully.`
-            }
-          ]
-        };
-      }
-
-      case 'nodash_submit_metric': {
-        if (!nodashSDK) {
-          nodashSDK = initializeSDK(process.env.NODASH_TOKEN);
-        }
-        
-        const { name, value, unit, tags } = args as {
-          name: string;
-          value: number;
-          unit?: string;
-          tags?: Record<string, string>;
-        };
-
-        await nodashSDK.sendMetric(name, value, { unit, tags });
-        
-        return {
-          content: [
-            {
-              type: 'text',
-              text: `Metric "${name}" submitted successfully. Value: ${value}${unit ? ` ${unit}` : ''}`
-            }
-          ]
-        };
-      }
-
-      case 'nodash_get_dashboards': {
-        return {
-          content: [
-            {
-              type: 'text',
-              text: `Dashboard functionality is not yet available in this version. Please use the analytics and monitoring features instead.`
-            }
-          ]
-        };
-      }
-
-      case 'nodash_get_dashboard': {
-        return {
-          content: [
-            {
-              type: 'text',
-              text: `Dashboard functionality is not yet available in this version. Please use the analytics and monitoring features instead.`
-            }
-          ]
-        };
-      }
-
-      case 'nodash_generate_report': {
-        return {
-          content: [
-            {
-              type: 'text',
-              text: `Report generation is not yet available in this version. Please use the analytics query features instead.`
-            }
-          ]
-        };
-      }
-
-      case 'nodash_health_check': {
-        if (!nodashSDK) {
-          nodashSDK = initializeSDK(process.env.NODASH_TOKEN);
-        }
-        
-        const result = await nodashSDK.monitoring.getHealth();
-        
-        const statusText = `- System: ${result.status === 'healthy' ? '✅' : '⚠️'} ${result.status}\n` +
-          Object.entries(result.checks || {})
-            .map(([service, check]) => {
-              const status = (check as any).status === 'pass' ? '✅' : '❌';
-              const message = (check as any).message || 'OK';
-              return `- ${service}: ${status} ${message}`;
-            })
-            .join('\n');
-        
-        return {
-          content: [
-            {
-              type: 'text',
-              text: `Nodash Services Health Check:\n${statusText}`
-            }
-          ]
-        };
-      }
-
-      default:
-        throw new Error(`Unknown tool: ${name}`);
-    }
-  } catch (error) {
-    return {
-      content: [
-        {
-          type: 'text',
-          text: `Error: ${error instanceof Error ? error.message : String(error)}`
-        }
-      ],
-      isError: true
-    };
-  }
+    ],
+    isError: result.status === 'error'
+  };
 });
 
 // Start server
