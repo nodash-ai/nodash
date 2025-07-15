@@ -5,7 +5,7 @@ import {
   ErrorCode,
   McpError,
 } from '@modelcontextprotocol/sdk/types.js';
-import { PromptsService } from '../services/prompts.js';
+import { PromptsService } from '../services/prompts';
 
 export function setupPromptHandlers(server: Server, promptsService: PromptsService) {
   // List available prompts

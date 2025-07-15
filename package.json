@@ -7,12 +7,13 @@
     "packages/*"
   ],
   "scripts": {
-    "build": "npm run build --workspaces",
+    "build": "tsc --build",
+    "build:packages": "npm run build --workspaces",
     "dev": "npm run dev --workspaces",
     "start": "npm run start --workspaces",
     "test": "npm run test --workspaces",
     "lint": "npm run lint --workspaces",
-    "clean": "npm run clean --workspaces"
+    "clean": "npm run clean --workspaces && tsc --build --clean"
   },
   "keywords": [
     "analytics",
@@ -49,5 +50,9 @@
   },
   "publishConfig": {
     "access": "public"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "uri-js": "^4.4.1"
   }
 }

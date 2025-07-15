@@ -5,10 +5,10 @@ import {
   ErrorCode,
   McpError,
 } from '@modelcontextprotocol/sdk/types.js';
-import { ProjectAnalysisService } from '../services/project-analysis.js';
-import { EventsService } from '../services/events.js';
-import { AdvancedAnalysisService } from '../services/advanced-analysis.js';
-import { ImplementationGuideService } from '../services/code-generator.js';
+import { ProjectAnalysisService } from '../services/project-analysis';
+import { EventsService } from '../services/events';
+import { AdvancedAnalysisService } from '../services/advanced-analysis';
+import { ImplementationGuideService } from '../services/code-generator';
 
 export function setupToolHandlers(
   server: Server,

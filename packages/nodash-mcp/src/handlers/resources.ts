@@ -5,8 +5,8 @@ import {
   ErrorCode,
   McpError,
 } from '@modelcontextprotocol/sdk/types.js';
-import { RESOURCE_URIS } from '../utils/constants.js';
-import { DocumentationService } from '../services/documentation.js';
+import { RESOURCE_URIS } from '../utils/constants';
+import { DocumentationService } from '../services/documentation';
 
 export function setupResourceHandlers(
   server: Server,

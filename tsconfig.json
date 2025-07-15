@@ -13,6 +13,11 @@
     "resolveJsonModule": true,
     "moduleResolution": "node"
   },
-  "include": ["packages/*/src/**/*"],
+  "references": [
+    { "path": "./packages/nodash-sdk" },
+    { "path": "./packages/nodash-cli" },
+    { "path": "./packages/nodash-mcp" }
+  ],
+  "files": [],
   "exclude": ["node_modules", "**/dist", "**/node_modules"]
 } 

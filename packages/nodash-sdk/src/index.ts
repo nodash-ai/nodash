@@ -1,4 +1,4 @@
-import { APIResponse, SDKConfig } from '@nodash/api-interfaces';
+import { APIResponse, SDKConfig } from './types/index.js';
 
 class NodashSDK {
   private config: Omit<SDKConfig, 'token'>;
@@ -83,3 +83,4 @@ class NodashSDK {
 }
 
 export { NodashSDK };
+export * from './types/index.js';
