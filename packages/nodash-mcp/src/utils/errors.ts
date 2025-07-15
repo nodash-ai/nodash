@@ -1,4 +1,5 @@
 import { CodeExample } from '../services/sdk-demonstrator.js';
+import { CLIResult } from '../services/cli-executor.js';
 
 /**
  * Base error class for MCP development-focused errors
@@ -460,4 +461,399 @@ export class MCPValidator {
       );
     }
   }
+}
+/**
+
+ * CLI Integration Error Types
+ */
+export enum CLIIntegrationErrorType {
+  CLI_NOT_AVAILABLE = 'CLI_NOT_AVAILABLE',
+  COMMAND_FAILED = 'COMMAND_FAILED',
+  PERMISSION_DENIED = 'PERMISSION_DENIED',
+  INVALID_COMMAND = 'INVALID_COMMAND',
+  TIMEOUT = 'TIMEOUT',
+  PARSING_ERROR = 'PARSING_ERROR',
+  SECURITY_VIOLATION = 'SECURITY_VIOLATION',
+  RATE_LIMIT_EXCEEDED = 'RATE_LIMIT_EXCEEDED'
+}
+
+/**
+ * CLI Integration specific error class
+ */
+export class CLIIntegrationError extends Error {
+  constructor(
+    public type: CLIIntegrationErrorType,
+    message: string,
+    public cliResult?: CLIResult,
+    public suggestions?: string[]
+  ) {
+    super(message);
+    this.name = 'CLIIntegrationError';
+  }
+
+  toMCPResponse(): MCPErrorResponse {
+    return {
+      error: this.message,
+      type: this.type,
+      suggestions: this.suggestions || [],
+      cliOutput: this.cliResult?.output,
+      troubleshooting: this.generateTroubleshooting()
+    };
+  }
+
+  private generateTroubleshooting(): string[] {
+    switch (this.type) {
+      case CLIIntegrationErrorType.CLI_NOT_AVAILABLE:
+        return [
+          'Ensure @nodash/cli is installed: npm install -g @nodash/cli',
+          'Check if nodash command is in PATH',
+          'Try running: which nodash',
+          'Verify Node.js version >= 18.0.0'
+        ];
+      case CLIIntegrationErrorType.COMMAND_FAILED:
+        return [
+          'Check the CLI error message above',
+          'Verify your configuration: nodash config list',
+          'Test connectivity: nodash health',
+          'Try running the command manually to isolate the issue'
+        ];
+      case CLIIntegrationErrorType.PERMISSION_DENIED:
+        return [
+          'Check file and directory permissions',
+          'Ensure you have write access to the project directory',
+          'Try running with appropriate permissions'
+        ];
+      case CLIIntegrationErrorType.SECURITY_VIOLATION:
+        return [
+          'Command blocked for security reasons',
+          'Review command arguments for unsafe characters',
+          'Use allowed commands only: config, track, metric, health, analyze'
+        ];
+      case CLIIntegrationErrorType.RATE_LIMIT_EXCEEDED:
+        return [
+          'Too many commands executed in short time',
+          'Wait a moment before retrying',
+          'Consider batching operations'
+        ];
+      default:
+        return ['Check the error message and try again'];
+    }
+  }
+}
+
+/**
+ * MCP Error Response interface for CLI integration
+ */
+export interface MCPErrorResponse {
+  error: string;
+  type: CLIIntegrationErrorType;
+  suggestions: string[];
+  cliOutput?: string;
+  troubleshooting: string[];
+}
+
+/**
+ * Fallback strategy interface
+ */
+export interface FallbackStrategy {
+  condition: (error: CLIIntegrationError) => boolean;
+  action: (originalRequest: any, error: CLIIntegrationError) => Promise<any>;
+  description: string;
+}
+
+/**
+ * Fallback Manager for handling CLI integration failures
+ */
+export class FallbackManager {
+  private strategies: FallbackStrategy[] = [];
+
+  constructor() {
+    this.initializeDefaultStrategies();
+  }
+
+  addStrategy(strategy: FallbackStrategy): void {
+    this.strategies.push(strategy);
+  }
+
+  async handleError(error: CLIIntegrationError, originalRequest: any): Promise<any> {
+    // Find applicable fallback strategy
+    for (const strategy of this.strategies) {
+      if (strategy.condition(error)) {
+        console.log(`Applying fallback strategy: ${strategy.description}`);
+        try {
+          return await strategy.action(originalRequest, error);
+        } catch (fallbackError) {
+          console.warn(`Fallback strategy failed: ${fallbackError}`);
+          continue;
+        }
+      }
+    }
+
+    // No fallback available, return error response
+    return {
+      success: false,
+      error: error.message,
+      type: error.type,
+      fallbackUsed: false,
+      suggestions: error.suggestions || [],
+      troubleshooting: error.generateTroubleshooting()
+    };
+  }
+
+  private initializeDefaultStrategies(): void {
+    // CLI not available - use MCP-only functionality
+    this.strategies.push({
+      condition: (error) => error.type === CLIIntegrationErrorType.CLI_NOT_AVAILABLE,
+      action: async (request, error) => {
+        return {
+          success: true,
+          fallbackUsed: true,
+          fallbackType: 'MCP_ONLY',
+          message: 'CLI not available, using MCP-only analysis',
+          data: await this.executeMCPOnlyFallback(request),
+          recommendations: [
+            'Install @nodash/cli for enhanced functionality',
+            'Current analysis is based on MCP capabilities only'
+          ]
+        };
+      },
+      description: 'Use MCP-only analysis when CLI is unavailable'
+    });
+
+    // Command failed - provide guidance without execution
+    this.strategies.push({
+      condition: (error) => error.type === CLIIntegrationErrorType.COMMAND_FAILED,
+      action: async (request, error) => {
+        return {
+          success: false,
+          fallbackUsed: true,
+          fallbackType: 'GUIDANCE_ONLY',
+          message: 'Command execution failed, providing guidance instead',
+          guidance: this.generateCommandGuidance(request, error),
+          troubleshooting: error.generateTroubleshooting()
+        };
+      },
+      description: 'Provide guidance when CLI commands fail'
+    });
+
+    // Security violation - sanitize and retry or provide safe alternative
+    this.strategies.push({
+      condition: (error) => error.type === CLIIntegrationErrorType.SECURITY_VIOLATION,
+      action: async (request, error) => {
+        return {
+          success: false,
+          fallbackUsed: true,
+          fallbackType: 'SECURITY_BLOCK',
+          message: 'Command blocked for security reasons',
+          safeAlternatives: this.generateSafeAlternatives(request),
+          securityInfo: {
+            violation: error.message,
+            allowedCommands: ['config', 'track', 'metric', 'health', 'analyze'],
+            safetyTips: [
+              'Use dry-run mode for testing',
+              'Avoid restricted arguments',
+              'Use only allowed commands'
+            ]
+          }
+        };
+      },
+      description: 'Provide safe alternatives for security violations'
+    });
+
+    // Rate limit exceeded - suggest retry with delay
+    this.strategies.push({
+      condition: (error) => error.type === CLIIntegrationErrorType.RATE_LIMIT_EXCEEDED,
+      action: async (request, error) => {
+        return {
+          success: false,
+          fallbackUsed: true,
+          fallbackType: 'RATE_LIMITED',
+          message: 'Rate limit exceeded, please retry after a delay',
+          retryAfter: 60, // seconds
+          batchingSuggestions: [
+            'Combine multiple operations into workflows',
+            'Use dry-run mode for testing',
+            'Space out command executions'
+          ]
+        };
+      },
+      description: 'Handle rate limit exceeded errors'
+    });
+  }
+
+  private async executeMCPOnlyFallback(request: any): Promise<any> {
+    // This would execute MCP-only functionality
+    // For now, return a placeholder response
+    return {
+      type: 'mcp_analysis',
+      message: 'Analysis completed using MCP capabilities',
+      limitations: [
+        'No CLI validation available',
+        'Cannot execute actual commands',
+        'Limited to static analysis'
+      ]
+    };
+  }
+
+  private generateCommandGuidance(request: any, error: CLIIntegrationError): any {
+    const command = request.command || 'unknown';
+    
+    const guidance: Record<string, any> = {
+      config: {
+        purpose: 'Manage Nodash CLI configuration',
+        commonIssues: [
+          'Invalid token format',
+          'Network connectivity issues',
+          'Permission problems'
+        ],
+        manualSteps: [
+          'Check token format: should be alphanumeric with hyphens/underscores',
+          'Test connectivity: ping api.nodash.ai',
+          'Verify file permissions in ~/.nodash/ directory'
+        ]
+      },
+      health: {
+        purpose: 'Check Nodash service connectivity',
+        commonIssues: [
+          'Network connectivity',
+          'Invalid API token',
+          'Service unavailable'
+        ],
+        manualSteps: [
+          'Check internet connection',
+          'Verify API token is set and valid',
+          'Check service status at status.nodash.ai'
+        ]
+      },
+      track: {
+        purpose: 'Send analytics events',
+        commonIssues: [
+          'Invalid event format',
+          'Authentication failure',
+          'Network issues'
+        ],
+        manualSteps: [
+          'Use dry-run mode first: --dry-run',
+          'Verify event name format (snake_case)',
+          'Check API token configuration'
+        ]
+      }
+    };
+
+    return guidance[command] || {
+      purpose: 'Execute Nodash CLI command',
+      commonIssues: ['Command syntax', 'Configuration', 'Permissions'],
+      manualSteps: ['Check command help: nodash <command> --help']
+    };
+  }
+
+  private generateSafeAlternatives(request: any): string[] {
+    const alternatives = [];
+    
+    if (request.command === 'config') {
+      alternatives.push('Use: nodash config list (to view current settings)');
+      alternatives.push('Use: nodash config get <key> (to get specific values)');
+    }
+    
+    if (request.command === 'track') {
+      alternatives.push('Use: nodash track <event> --dry-run (to test safely)');
+      alternatives.push('Use: nodash track <event> --properties \'{"key":"value"}\' (with proper JSON)');
+    }
+    
+    alternatives.push('Review command documentation for safe usage patterns');
+    alternatives.push('Use MCP-only tools for analysis without command execution');
+    
+    return alternatives;
+  }
+}
+
+/**
+ * Error Recovery Manager for CLI integration
+ */
+export class ErrorRecoveryManager {
+  constructor(private fallbackManager: FallbackManager) {}
+
+  async handleCLIError(
+    error: unknown, 
+    context: string, 
+    originalRequest?: any
+  ): Promise<any> {
+    let cliError: CLIIntegrationError;
+
+    // Convert various error types to CLIIntegrationError
+    if (error instanceof CLIIntegrationError) {
+      cliError = error;
+    } else if (error instanceof Error) {
+      cliError = this.classifyError(error, context);
+    } else {
+      cliError = new CLIIntegrationError(
+        CLIIntegrationErrorType.COMMAND_FAILED,
+        `Unknown error in ${context}: ${String(error)}`
+      );
+    }
+
+    // Try fallback strategies
+    if (originalRequest) {
+      return await this.fallbackManager.handleError(cliError, originalRequest);
+    }
+
+    // Return error response
+    return cliError.toMCPResponse();
+  }
+
+  private classifyError(error: Error, context: string): CLIIntegrationError {
+    const message = error.message.toLowerCase();
+
+    if (message.includes('command not found') || message.includes('enoent')) {
+      return new CLIIntegrationError(
+        CLIIntegrationErrorType.CLI_NOT_AVAILABLE,
+        'Nodash CLI not found or not installed',
+        undefined,
+        ['Install CLI: npm install -g @nodash/cli']
+      );
+    }
+
+    if (message.includes('permission denied') || message.includes('eacces')) {
+      return new CLIIntegrationError(
+        CLIIntegrationErrorType.PERMISSION_DENIED,
+        'Permission denied executing CLI command',
+        undefined,
+        ['Check file permissions', 'Run with appropriate privileges']
+      );
+    }
+
+    if (message.includes('timeout')) {
+      return new CLIIntegrationError(
+        CLIIntegrationErrorType.TIMEOUT,
+        'CLI command timed out',
+        undefined,
+        ['Increase timeout value', 'Check network connectivity']
+      );
+    }
+
+    if (message.includes('rate limit') || message.includes('too many requests')) {
+      return new CLIIntegrationError(
+        CLIIntegrationErrorType.RATE_LIMIT_EXCEEDED,
+        'Rate limit exceeded',
+        undefined,
+        ['Wait before retrying', 'Reduce command frequency']
+      );
+    }
+
+    // Default to command failed
+    return new CLIIntegrationError(
+      CLIIntegrationErrorType.COMMAND_FAILED,
+      `CLI command failed in ${context}: ${error.message}`,
+      undefined,
+      ['Check command syntax', 'Verify configuration']
+    );
+  }
+}
+
+/**
+ * Utility function to create error recovery system
+ */
+export function createErrorRecovery(): ErrorRecoveryManager {
+  const fallbackManager = new FallbackManager();
+  return new ErrorRecoveryManager(fallbackManager);
 }

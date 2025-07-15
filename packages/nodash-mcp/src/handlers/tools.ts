@@ -9,6 +9,8 @@ import { ProjectAnalysisService } from '../services/project-analysis.js';
 import { AdvancedAnalysisService } from '../services/advanced-analysis.js';
 import { ImplementationGuideService } from '../services/code-generator.js';
 import { MCPDevelopmentError, MCPErrorFactory, MCPValidator, withErrorHandling } from '../utils/errors.js';
+import { CLIExecutor, CLICommand } from '../services/cli-executor.js';
+import { OutputParser } from '../services/output-parser.js';
 
 // Helper functions for development-focused tools
 function generateEventTemplates(businessType: string) {
