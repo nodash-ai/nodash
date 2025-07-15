@@ -1,6 +1,6 @@
 {
   "name": "@nodash/mcp-server",
-  "version": "1.0.2",
+  "version": "1.0.4",
   "description": "Nodash MCP - Model Context Protocol integration for AI-assisted analytics (not for npm)",
   "main": "dist/server.js",
   "types": "dist/server.d.ts",

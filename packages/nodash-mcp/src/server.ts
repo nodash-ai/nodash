@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 
@@ -62,7 +63,11 @@ const enhancedIntegration = new EnhancedMCPIntegration(
 );
 
 // Initialize enhanced tools handler with CLI integration
-const enhancedToolsHandler = new EnhancedToolsHandler();
+const enhancedToolsHandler = new EnhancedToolsHandler(
+  projectService,
+  advancedAnalysisService,
+  implementationGuideService
+);
 
 // Setup all handlers
 setupToolHandlers(
