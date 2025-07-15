@@ -202,7 +202,7 @@ export class CommandTranslator {
       {
         command: 'analyze',
         args: ['.'],
-        options: { setup: true },
+        options: {},
         description: 'Generate setup files'
       }
     );
@@ -420,7 +420,7 @@ export class CommandTranslator {
     commands.push({
       command: 'analyze',
       args: ['.'],
-      options: { setup: true },
+      options: {},
       description: 'Generate setup files'
     });
     

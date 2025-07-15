@@ -39,7 +39,7 @@ export class MCPDevelopmentError extends Error {
 
   private getHelpText(): string {
     let help = `❌ ${this.message}\n\n`;
-    
+
     if (this.suggestions.length > 0) {
       help += '💡 **Suggestions:**\n';
       this.suggestions.forEach((suggestion, index) => {
@@ -47,21 +47,21 @@ export class MCPDevelopmentError extends Error {
       });
       help += '\n';
     }
-    
+
     if (this.examples && this.examples.length > 0) {
       help += '📝 **Code Examples:**\n';
       this.examples.forEach((example, index) => {
         help += `**${example.title}:**\n\`\`\`${example.language}\n${example.code}\n\`\`\`\n\n`;
       });
     }
-    
+
     if (this.documentation && this.documentation.length > 0) {
       help += '📚 **Documentation:**\n';
       this.documentation.forEach(doc => {
         help += `- ${doc}\n`;
       });
     }
-    
+
     return help;
   }
 }
@@ -378,7 +378,7 @@ export async function withErrorHandling<T>(
     if (error instanceof MCPDevelopmentError) {
       throw error;
     }
-    
+
     throw new MCPDevelopmentError(
       `${errorContext}: ${error instanceof Error ? error.message : String(error)}`,
       'OPERATION_FAILED',
@@ -501,7 +501,7 @@ export class CLIIntegrationError extends Error {
     };
   }
 
-  private generateTroubleshooting(): string[] {
+  public generateTroubleshooting(): string[] {
     switch (this.type) {
       case CLIIntegrationErrorType.CLI_NOT_AVAILABLE:
         return [
@@ -697,7 +697,7 @@ export class FallbackManager {
 
   private generateCommandGuidance(request: any, error: CLIIntegrationError): any {
     const command = request.command || 'unknown';
-    
+
     const guidance: Record<string, any> = {
       config: {
         purpose: 'Manage Nodash CLI configuration',
@@ -749,20 +749,20 @@ export class FallbackManager {
 
   private generateSafeAlternatives(request: any): string[] {
     const alternatives = [];
-    
+
     if (request.command === 'config') {
       alternatives.push('Use: nodash config list (to view current settings)');
       alternatives.push('Use: nodash config get <key> (to get specific values)');
     }
-    
+
     if (request.command === 'track') {
       alternatives.push('Use: nodash track <event> --dry-run (to test safely)');
       alternatives.push('Use: nodash track <event> --properties \'{"key":"value"}\' (with proper JSON)');
     }
-    
+
     alternatives.push('Review command documentation for safe usage patterns');
     alternatives.push('Use MCP-only tools for analysis without command execution');
-    
+
     return alternatives;
   }
 }
@@ -771,11 +771,11 @@ export class FallbackManager {
  * Error Recovery Manager for CLI integration
  */
 export class ErrorRecoveryManager {
-  constructor(private fallbackManager: FallbackManager) {}
+  constructor(private fallbackManager: FallbackManager) { }
 
   async handleCLIError(
-    error: unknown, 
-    context: string, 
+    error: unknown,
+    context: string,
     originalRequest?: any
   ): Promise<any> {
     let cliError: CLIIntegrationError;

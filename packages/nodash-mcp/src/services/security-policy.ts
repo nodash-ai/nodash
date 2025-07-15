@@ -37,7 +37,7 @@ export class SecurityManager {
         return input.replace(/[;&|`$()]/g, '');
       },
       validateToken: (token) => {
-        return token && token.length >= 10 && /^[a-zA-Z0-9_-]+$/.test(token);
+        return Boolean(token && token.length >= 10 && /^[a-zA-Z0-9_-]+$/.test(token));
       },
       ...policy
     };

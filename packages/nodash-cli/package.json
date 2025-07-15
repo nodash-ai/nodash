@@ -1,6 +1,6 @@
 {
   "name": "@nodash/cli",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Comprehensive CLI for Nodash analytics platform with event tracking, metrics monitoring, and project analysis",
   "main": "dist/index.js",
   "type": "module",
@@ -32,7 +32,7 @@
   "author": "Nodash Team",
   "license": "MIT",
   "dependencies": {
-    "@nodash/sdk": "^1.0.0",
+    "@nodash/sdk": "^1.0.3",
     "chalk": "^5.4.1",
     "commander": "^11.1.0"
   },

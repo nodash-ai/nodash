@@ -96,7 +96,7 @@ async function main() {
     const envCheck = await quickEnvironmentCheck();
     if (envCheck.cliAvailable) {
       monitoringService.info(`CLI integration available (version: ${envCheck.version})`, 'cli');
-      monitoringService.updateHealthStatus(true, envCheck.version);
+      monitoringService.updateHealthStatus(true, envCheck.version || undefined);
       
       if (!envCheck.compatible) {
         monitoringService.warn('CLI version compatibility issues detected', 'cli', {

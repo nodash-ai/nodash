@@ -176,7 +176,7 @@ export class WorkflowOrchestrator {
           command: {
             command: 'analyze',
             args: ['.'],
-            options: { setup: true }
+            options: {}
           },
           condition: (results, ctx) => {
             return ctx.sessionState.projectAnalysis?.framework !== undefined;
@@ -275,7 +275,7 @@ export class WorkflowOrchestrator {
         command: {
           command: 'health',
           args: [],
-          options: { timeout: '10000' }
+          options: { timeout: 10000 }
         }
       });
     }
@@ -337,9 +337,7 @@ export class WorkflowOrchestrator {
           context.sessionState.healthStatus = this.outputParser.parseHealthOutput(result);
           break;
         case 'analyze':
-          if (!step.command.options.setup) {
-            context.sessionState.projectAnalysis = this.outputParser.parseAnalysisOutput(result);
-          }
+          context.sessionState.projectAnalysis = this.outputParser.parseAnalysisOutput(result);
           break;
       }
     } catch (error) {

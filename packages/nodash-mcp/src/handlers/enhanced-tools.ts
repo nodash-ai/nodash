@@ -48,22 +48,10 @@ export class EnhancedToolsHandler {
   }
 
   setupEnhancedTools(server: Server): void {
-    // Get existing handler if it exists
-    const existingListHandler = server.getRequestHandler?.(ListToolsRequestSchema);
-    const existingCallHandler = server.getRequestHandler?.(CallToolRequestSchema);
-
     // Override the list tools handler to include enhanced tools
     server.setRequestHandler(ListToolsRequestSchema, async (request) => {
       // Get existing tools first
       let existingTools: any[] = [];
-      if (existingListHandler) {
-        try {
-          const existingResponse = await existingListHandler(request);
-          existingTools = existingResponse.tools || [];
-        } catch (error) {
-          console.warn('Failed to get existing tools:', error);
-        }
-      }
       
       const enhancedTools = [
         {
@@ -248,12 +236,8 @@ export class EnhancedToolsHandler {
           };
         }
       } else {
-        // For non-enhanced tools, delegate to existing handler
-        if (existingCallHandler) {
-          return await existingCallHandler(request);
-        } else {
-          throw new McpError(ErrorCode.MethodNotFound, `Unknown tool: ${name}`);
-        }
+        // For non-enhanced tools, return method not found
+        throw new McpError(ErrorCode.MethodNotFound, `Unknown tool: ${name}`);
       }
     });
   }
