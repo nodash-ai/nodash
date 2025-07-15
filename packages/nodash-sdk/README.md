@@ -1,6 +1,7 @@
 # @nodash/sdk
 
-Industry-standard analytics SDK for event tracking with support for user identification, page views, groups, sessions, and more.
+Industry-standard analytics SDK for event tracking with support for user identification, 
+page views, groups, sessions, and more.
 
 ## Quick Start
 

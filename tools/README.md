@@ -119,16 +119,16 @@ Ensure your events meet Nodash standards:
 $ node tools/validate-events.js --file my-events.json
 
 ✅ Event validation results:
-   
+
 📊 Summary:
    Total events: 25
    Valid events: 23
    Invalid events: 2
-   
+
 ❌ Validation errors:
    - "User Login": Missing required property 'timestamp'
    - "Product View": Invalid property type 'price' (expected number, got string)
-   
+
 💡 Suggestions:
    - Add timestamp to all user events
    - Ensure price values are numeric
@@ -149,11 +149,11 @@ $ node tools/debug-tracking.js
    [14:23:15] User Signup { email: "user@example.com", plan: "free" }
    [14:23:18] Page View { path: "/dashboard", referrer: "/signup" }
    [14:23:22] Button Click { component: "cta", text: "Get Started" }
-   
+
 ⚠️  Warnings:
    - High event frequency detected (50 events/sec)
    - Large payload size on "User Profile Update" (2.3KB)
-   
+
 📈 Performance:
    - Average payload size: 156 bytes
    - Network latency: 45ms
@@ -267,4 +267,4 @@ All tools are provided under the MIT License - see [LICENSE](../LICENSE) for det
 
 ---
 
-**Pro tip**: Combine multiple tools in your CI/CD pipeline for automated analytics quality assurance! 
+**Pro tip**: Combine multiple tools in your CI/CD pipeline for automated analytics quality assurance!
