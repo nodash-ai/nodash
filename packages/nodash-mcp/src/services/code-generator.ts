@@ -1,4 +1,4 @@
-import { Framework, Language, IntegrationComplexity } from '../types';
+import { Framework, Language, IntegrationComplexity } from '../types.js';
 
 export interface ImplementationStep {
   id: string;

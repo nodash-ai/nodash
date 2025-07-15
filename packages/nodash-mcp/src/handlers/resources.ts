@@ -5,17 +5,20 @@ import {
   ErrorCode,
   McpError,
 } from '@modelcontextprotocol/sdk/types.js';
-import { RESOURCE_URIS } from '../utils/constants';
-import { DocumentationService } from '../services/documentation';
+import { RESOURCE_URIS } from '../utils/constants.js';
+import { DocumentationService } from '../services/documentation.js';
+import * as fs from 'fs/promises';
+import * as path from 'path';
 
 export function setupResourceHandlers(
   server: Server,
   docService: DocumentationService
 ) {
-  // List available resources (documentation only)
+  // List available resources (documentation and examples)
   server.setRequestHandler(ListResourcesRequestSchema, async () => {
     return {
       resources: [
+        // Documentation resources
         {
           uri: RESOURCE_URIS.SDK_README,
           name: 'Nodash SDK Documentation',
@@ -40,11 +43,36 @@ export function setupResourceHandlers(
           description: 'Complete API reference with TypeScript definitions',
           mimeType: 'application/json',
         },
+        // Example resources
+        {
+          uri: 'nodash://examples/overview',
+          name: 'Examples Overview',
+          description: 'Overview of all available framework examples and demos',
+          mimeType: 'text/markdown',
+        },
+        {
+          uri: 'nodash://examples/react',
+          name: 'React Example',
+          description: 'Complete React application with Nodash analytics integration',
+          mimeType: 'text/markdown',
+        },
+        {
+          uri: 'nodash://examples/react/app',
+          name: 'React App Component',
+          description: 'Main React App component showing SDK integration patterns',
+          mimeType: 'text/typescript',
+        },
+        {
+          uri: 'nodash://examples/react/main',
+          name: 'React Main Entry',
+          description: 'React application entry point and setup',
+          mimeType: 'text/typescript',
+        },
       ],
     };
   });
 
-  // Read specific resources (documentation only)
+  // Read specific resources (documentation and examples)
   server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
     const { uri } = request.params;
 
@@ -94,6 +122,51 @@ export function setupResourceHandlers(
             ],
           };
 
+        // Example resources
+        case 'nodash://examples/overview':
+          return {
+            contents: [
+              {
+                uri,
+                mimeType: 'text/markdown',
+                text: await readExampleFile('README.md'),
+              },
+            ],
+          };
+
+        case 'nodash://examples/react':
+          return {
+            contents: [
+              {
+                uri,
+                mimeType: 'text/markdown',
+                text: await readExampleFile('react/README.md'),
+              },
+            ],
+          };
+
+        case 'nodash://examples/react/app':
+          return {
+            contents: [
+              {
+                uri,
+                mimeType: 'text/typescript',
+                text: await readExampleFile('react/src/App.tsx'),
+              },
+            ],
+          };
+
+        case 'nodash://examples/react/main':
+          return {
+            contents: [
+              {
+                uri,
+                mimeType: 'text/typescript',
+                text: await readExampleFile('react/src/main.tsx'),
+              },
+            ],
+          };
+
         default:
           throw new McpError(ErrorCode.InvalidRequest, `Unknown resource: ${uri}`);
       }
@@ -101,4 +174,16 @@ export function setupResourceHandlers(
       throw new McpError(ErrorCode.InternalError, `Failed to read resource ${uri}: ${error}`);
     }
   });
+
+  // Helper function to read example files
+  async function readExampleFile(relativePath: string): Promise<string> {
+    try {
+      // Get the examples directory path relative to the MCP server
+      const examplesPath = path.resolve(process.cwd(), '../../examples', relativePath);
+      const content = await fs.readFile(examplesPath, 'utf-8');
+      return content;
+    } catch (error) {
+      throw new Error(`Failed to read example file ${relativePath}: ${error}`);
+    }
+  }
 } 

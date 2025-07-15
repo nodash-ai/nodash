@@ -5,15 +5,367 @@ import {
   ErrorCode,
   McpError,
 } from '@modelcontextprotocol/sdk/types.js';
-import { ProjectAnalysisService } from '../services/project-analysis';
-import { EventsService } from '../services/events';
-import { AdvancedAnalysisService } from '../services/advanced-analysis';
-import { ImplementationGuideService } from '../services/code-generator';
+import { ProjectAnalysisService } from '../services/project-analysis.js';
+import { AdvancedAnalysisService } from '../services/advanced-analysis.js';
+import { ImplementationGuideService } from '../services/code-generator.js';
+import { MCPDevelopmentError, MCPErrorFactory, MCPValidator, withErrorHandling } from '../utils/errors.js';
+
+// Helper functions for development-focused tools
+function generateEventTemplates(businessType: string) {
+  const templates = {
+    'e-commerce': [
+      {
+        name: 'Product Viewed',
+        eventName: 'product_viewed',
+        description: 'Track when users view product details',
+        usage: 'Product detail pages, search results, recommendations',
+        properties: {
+          product_id: 'string',
+          product_name: 'string',
+          category: 'string',
+          price: 'number',
+          currency: 'string'
+        },
+        propertyDescriptions: {
+          product_id: 'Unique product identifier',
+          product_name: 'Human-readable product name',
+          category: 'Product category or department',
+          price: 'Product price in cents',
+          currency: 'Currency code (USD, EUR, etc.)'
+        },
+        exampleValues: {
+          product_id: '"prod_123"',
+          product_name: '"Wireless Headphones"',
+          category: '"Electronics"',
+          price: '9999',
+          currency: '"USD"'
+        }
+      },
+      {
+        name: 'Add to Cart',
+        eventName: 'add_to_cart',
+        description: 'Track when users add items to their cart',
+        usage: 'Product pages, quick add buttons, bulk actions',
+        properties: {
+          product_id: 'string',
+          quantity: 'number',
+          price: 'number',
+          cart_total: 'number'
+        },
+        propertyDescriptions: {
+          product_id: 'Product being added',
+          quantity: 'Number of items added',
+          price: 'Unit price of the item',
+          cart_total: 'Total cart value after addition'
+        },
+        exampleValues: {
+          product_id: '"prod_123"',
+          quantity: '1',
+          price: '9999',
+          cart_total: '19998'
+        }
+      }
+    ],
+    'saas': [
+      {
+        name: 'Feature Used',
+        eventName: 'feature_used',
+        description: 'Track feature adoption and usage patterns',
+        usage: 'Any feature interaction, button clicks, tool usage',
+        properties: {
+          feature_name: 'string',
+          feature_category: 'string',
+          user_plan: 'string',
+          session_duration: 'number'
+        },
+        propertyDescriptions: {
+          feature_name: 'Name of the feature used',
+          feature_category: 'Category or module of the feature',
+          user_plan: 'User subscription plan',
+          session_duration: 'Time spent in current session'
+        },
+        exampleValues: {
+          feature_name: '"Export Data"',
+          feature_category: '"Analytics"',
+          user_plan: '"Pro"',
+          session_duration: '1200'
+        }
+      }
+    ],
+    'general': [
+      {
+        name: 'Page View',
+        eventName: 'page_view',
+        description: 'Track page navigation and content consumption',
+        usage: 'All page loads, route changes, content views',
+        properties: {
+          page_title: 'string',
+          page_url: 'string',
+          referrer: 'string',
+          load_time: 'number'
+        },
+        propertyDescriptions: {
+          page_title: 'Title of the page viewed',
+          page_url: 'Full URL of the page',
+          referrer: 'Previous page URL',
+          load_time: 'Page load time in milliseconds'
+        },
+        exampleValues: {
+          page_title: '"Home Page"',
+          page_url: '"/home"',
+          referrer: '"https://google.com"',
+          load_time: '850'
+        }
+      }
+    ]
+  };
+
+  return templates[businessType as keyof typeof templates] || templates.general;
+}
+
+function validateEventSchema(eventName: string, properties: any, context?: string) {
+  const issues: Array<{severity: string, message: string}> = [];
+  const recommendations: string[] = [];
+  
+  // Validate event name
+  if (!eventName.match(/^[a-z][a-z0-9_]*$/)) {
+    issues.push({
+      severity: 'error',
+      message: 'Event name should be lowercase with underscores (snake_case)'
+    });
+  }
+  
+  // Validate properties
+  if (!properties || typeof properties !== 'object') {
+    issues.push({
+      severity: 'error',
+      message: 'Properties should be an object with property definitions'
+    });
+  }
+  
+  // Check for common missing properties
+  const commonProps = ['timestamp', 'user_id', 'session_id'];
+  const missingCommon = commonProps.filter(prop => !(prop in properties));
+  if (missingCommon.length > 0) {
+    recommendations.push(`Consider adding common properties: ${missingCommon.join(', ')}`);
+  }
+  
+  // Improved schema
+  const improvedSchema = {
+    eventName: eventName.toLowerCase().replace(/[^a-z0-9]/g, '_'),
+    properties: {
+      ...properties,
+      timestamp: 'string',
+      user_id: 'string (optional)',
+      session_id: 'string (optional)'
+    }
+  };
+  
+  return {
+    isValid: issues.length === 0,
+    issues,
+    recommendations,
+    improvedSchema
+  };
+}
+
+function generateTrackingCode(eventName: string, framework: string, properties?: any) {
+  const frameworks = {
+    react: {
+      language: 'typescript',
+      basic: `import { useNodash } from '@nodash/sdk';
+
+function MyComponent() {
+  const { track } = useNodash();
+  
+  const handleClick = () => {
+    track('${eventName}', {
+      ${properties ? Object.keys(properties).map(key => `${key}: 'value'`).join(',\n      ') : 'property: "value"'}
+    });
+  };
+  
+  return <button onClick={handleClick}>Track Event</button>;
+}`,
+      advanced: `import { useNodash } from '@nodash/sdk';
+import { useCallback } from 'react';
+
+function MyComponent() {
+  const { track } = useNodash();
+  
+  const handleTrackEvent = useCallback(async () => {
+    try {
+      await track('${eventName}', {
+        ${properties ? Object.keys(properties).map(key => `${key}: 'value'`).join(',\n        ') : 'property: "value"'},
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error('Failed to track event:', error);
+    }
+  }, [track]);
+  
+  return <button onClick={handleTrackEvent}>Track Event</button>;
+}`,
+      component: `// Complete component example
+import React, { useEffect } from 'react';
+import { useNodash } from '@nodash/sdk';
+
+export function ${eventName.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join('')}Component() {
+  const { track } = useNodash();
+  
+  useEffect(() => {
+    // Track component mount
+    track('${eventName}', {
+      component: '${eventName}Component',
+      action: 'mounted'
+    });
+  }, [track]);
+  
+  return (
+    <div>
+      <h2>Component with Analytics</h2>
+      <button onClick={() => track('${eventName}', { action: 'clicked' })}>
+        Click Me
+      </button>
+    </div>
+  );
+}`,
+      requirements: [
+        'Install @nodash/sdk: npm install @nodash/sdk',
+        'Wrap app with NodashProvider',
+        'Configure API token in environment variables'
+      ],
+      testing: `// Test the tracking
+import { render, fireEvent } from '@testing-library/react';
+import { MyComponent } from './MyComponent';
+
+test('tracks ${eventName} on click', () => {
+  const mockTrack = jest.fn();
+  render(<MyComponent track={mockTrack} />);
+  
+  fireEvent.click(screen.getByText('Track Event'));
+  expect(mockTrack).toHaveBeenCalledWith('${eventName}', expect.any(Object));
+});`,
+      bestPractices: [
+        'Use useCallback to prevent unnecessary re-renders',
+        'Handle tracking errors gracefully',
+        'Include relevant context in event properties',
+        'Test tracking in development mode first'
+      ]
+    },
+    vue: {
+      language: 'typescript',
+      basic: `<template>
+  <button @click="handleClick">Track Event</button>
+</template>
+
+<script setup lang="ts">
+import { useNodash } from '@nodash/sdk';
+
+const { track } = useNodash();
+
+const handleClick = () => {
+  track('${eventName}', {
+    ${properties ? Object.keys(properties).map(key => `${key}: 'value'`).join(',\n    ') : 'property: "value"'}
+  });
+};
+</script>`,
+      advanced: `<template>
+  <button @click="handleTrackEvent" :disabled="isTracking">
+    {{ isTracking ? 'Tracking...' : 'Track Event' }}
+  </button>
+</template>
+
+<script setup lang="ts">
+import { ref } from 'vue';
+import { useNodash } from '@nodash/sdk';
+
+const { track } = useNodash();
+const isTracking = ref(false);
+
+const handleTrackEvent = async () => {
+  isTracking.value = true;
+  try {
+    await track('${eventName}', {
+      ${properties ? Object.keys(properties).map(key => `${key}: 'value'`).join(',\n      ') : 'property: "value"'},
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('Failed to track event:', error);
+  } finally {
+    isTracking.value = false;
+  }
+};
+</script>`,
+      component: `<template>
+  <div>
+    <h2>Component with Analytics</h2>
+    <button @click="trackClick">Click Me</button>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { onMounted } from 'vue';
+import { useNodash } from '@nodash/sdk';
+
+const { track } = useNodash();
+
+onMounted(() => {
+  track('${eventName}', {
+    component: '${eventName}Component',
+    action: 'mounted'
+  });
+});
+
+const trackClick = () => {
+  track('${eventName}', { action: 'clicked' });
+};
+</script>`,
+      requirements: [
+        'Install @nodash/sdk: npm install @nodash/sdk',
+        'Add Nodash plugin to Vue app',
+        'Configure API token'
+      ],
+      testing: `// Test with Vue Test Utils
+import { mount } from '@vue/test-utils';
+import MyComponent from './MyComponent.vue';
+
+test('tracks ${eventName} on click', async () => {
+  const mockTrack = vi.fn();
+  const wrapper = mount(MyComponent, {
+    global: {
+      provide: { track: mockTrack }
+    }
+  });
+  
+  await wrapper.find('button').trigger('click');
+  expect(mockTrack).toHaveBeenCalledWith('${eventName}', expect.any(Object));
+});`,
+      bestPractices: [
+        'Use composition API for better TypeScript support',
+        'Handle async tracking with proper loading states',
+        'Use onMounted for component lifecycle tracking',
+        'Provide fallbacks for tracking failures'
+      ]
+    }
+  };
+  
+  return frameworks[framework as keyof typeof frameworks] || frameworks.react;
+}
+
+function getExampleValue(type: string): string {
+  const examples = {
+    'string': '"example"',
+    'number': '123',
+    'boolean': 'true',
+    'object': '{}',
+    'array': '[]'
+  };
+  return examples[type as keyof typeof examples] || '"value"';
+}
 
 export function setupToolHandlers(
   server: Server,
   projectService: ProjectAnalysisService,
-  eventsService: EventsService,
   advancedAnalysisService: AdvancedAnalysisService,
   implementationGuideService: ImplementationGuideService
 ) {
@@ -43,69 +395,60 @@ export function setupToolHandlers(
           },
         },
         {
-          name: 'get_events_schema',
-          description: 'Get current event schema definitions',
+          name: 'get_event_templates',
+          description: 'Get event schema templates and examples for common use cases',
           inputSchema: {
             type: 'object',
-            properties: {},
+            properties: {
+              business_type: {
+                type: 'string',
+                description: 'Type of business (e-commerce, saas, content, etc.)',
+              },
+            },
           },
         },
         {
-          name: 'set_event_definition',
-          description: 'Define or update an event schema',
+          name: 'validate_event_schema',
+          description: 'Validate an event schema design and provide recommendations',
           inputSchema: {
             type: 'object',
             properties: {
               event_name: {
                 type: 'string',
-                description: 'Name of the event',
+                description: 'Name of the event to validate',
               },
               properties: {
                 type: 'object',
-                description: 'Event properties schema',
+                description: 'Event properties schema to validate',
               },
-              description: {
+              context: {
                 type: 'string',
-                description: 'Event description',
+                description: 'Context where this event will be used',
               },
             },
             required: ['event_name', 'properties'],
           },
         },
         {
-          name: 'query_events',
-          description: 'Query existing event data for analysis',
+          name: 'generate_tracking_code',
+          description: 'Generate code examples for tracking specific events',
           inputSchema: {
             type: 'object',
             properties: {
               event_name: {
                 type: 'string',
-                description: 'Filter by event name (optional)',
+                description: 'Name of the event to generate code for',
               },
-              limit: {
-                type: 'number',
-                description: 'Maximum number of events to return',
-                default: 100,
-              },
-            },
-          },
-        },
-        {
-          name: 'track_event',
-          description: 'Track a test event (for testing purposes)',
-          inputSchema: {
-            type: 'object',
-            properties: {
-              event_name: {
+              framework: {
                 type: 'string',
-                description: 'Name of the event to track',
+                description: 'Target framework (react, vue, angular, etc.)',
               },
               properties: {
                 type: 'object',
-                description: 'Event properties',
+                description: 'Event properties to include in the code',
               },
             },
-            required: ['event_name'],
+            required: ['event_name', 'framework'],
           },
         },
         {
@@ -173,25 +516,20 @@ The Nodash MCP server provides analytics capabilities through tools, resources, 
 - **Usage**: Call this first to understand the project
 - **Example**: "Analyze my current project structure"
 
-### 2. **get_events_schema** 
-- **Purpose**: View current event definitions
-- **Usage**: See what events are already defined
-- **Example**: "Show me the current event schema"
+### 2. **get_event_templates**
+- **Purpose**: Get event schema templates for common use cases
+- **Usage**: See what events you can track for your business type
+- **Example**: "Get event templates for e-commerce business"
 
-### 3. **set_event_definition**
-- **Purpose**: Define new events or update existing ones
-- **Usage**: Create structured event schemas
-- **Example**: "Define a 'user_signup' event with email and source properties"
+### 3. **validate_event_schema**
+- **Purpose**: Validate event schema design and get recommendations
+- **Usage**: Check if your event schema follows best practices
+- **Example**: "Validate my 'user_signup' event schema"
 
-### 4. **query_events**
-- **Purpose**: Query and analyze tracked event data
-- **Usage**: Get insights from collected events
-- **Example**: "Show me the last 50 events"
-
-### 5. **track_event**
-- **Purpose**: Track test events for validation
-- **Usage**: Test event tracking functionality
-- **Example**: "Track a test 'button_click' event"
+### 4. **generate_tracking_code**
+- **Purpose**: Generate framework-specific tracking code examples
+- **Usage**: Get implementation code for specific events and frameworks
+- **Example**: "Generate React tracking code for 'button_click' event"
 
 ### 6. **advanced_analysis** 🔥 NEW!
 - **Purpose**: Deep code analysis with AI-powered insights
@@ -242,9 +580,9 @@ The Nodash MCP server provides analytics capabilities through tools, resources, 
 1. **Start with project analysis**: Use 'analyze_project' to understand your codebase
 2. **Get comprehensive insights**: Use 'advanced_analysis' for AI-powered recommendations
 3. **Get implementation guidance**: Use 'implementation_guide' for step-by-step instructions
-4. **Define your events**: Use 'set_event_definition' to create event schemas
-5. **Test your setup**: Use 'track_event' to verify everything works
-6. **Query your data**: Use 'query_events' to analyze collected data
+4. **Get event templates**: Use 'get_event_templates' to see common event patterns
+5. **Validate your schemas**: Use 'validate_event_schema' to ensure best practices
+6. **Generate code examples**: Use 'generate_tracking_code' for implementation help
 
 ## 💡 PRO TIPS
 
@@ -280,57 +618,193 @@ Ready to get started? Try: "Analyze my project and give me an implementation gui
           };
         }
 
-        case 'get_events_schema': {
-          const schema = await eventsService.getEventsSchema();
+        case 'get_event_templates': {
+          const businessType = (args?.business_type as string) || 'general';
+          const templates = generateEventTemplates(businessType);
           return {
             content: [
               {
                 type: 'text',
-                text: JSON.stringify(schema, null, 2),
+                text: `# Event Templates for ${businessType.charAt(0).toUpperCase() + businessType.slice(1)} Business
+
+${templates.map(template => `
+## ${template.name}
+**Description**: ${template.description}
+**When to use**: ${template.usage}
+
+### Event Schema
+\`\`\`typescript
+{
+  event: '${template.eventName}',
+  properties: {
+${Object.entries(template.properties).map(([key, type]) => `    ${key}: ${type} // ${(template.propertyDescriptions as any)[key] || 'No description'}`).join(',\n')}
+  }
+}
+\`\`\`
+
+### Implementation Example
+\`\`\`typescript
+// Track this event in your application
+nodash.track('${template.eventName}', {
+${Object.keys(template.properties).map(key => `  ${key}: ${(template.exampleValues as any)[key] || 'value'}`).join(',\n')}
+});
+\`\`\`
+`).join('\n')}
+
+## 💡 Best Practices
+- Use consistent naming conventions across events
+- Include relevant context properties
+- Validate event data before sending
+- Test events in development environment first`,
               },
             ],
           };
         }
 
-        case 'set_event_definition': {
+        case 'validate_event_schema': {
           if (!args?.event_name || !args?.properties) {
-            throw new McpError(ErrorCode.InvalidParams, 'event_name and properties are required');
+            const error = MCPErrorFactory.invalidEventSchema(
+              (args?.event_name as string) || 'undefined',
+              ['event_name and properties are required']
+            );
+            return {
+              content: [
+                {
+                  type: 'text',
+                  text: error.toMCPResponse().helpText
+                }
+              ]
+            };
           }
           
-          const result = await eventsService.setEventDefinition(args);
+          // Validate event name format
+          try {
+            MCPValidator.validateEventName(args.event_name as string);
+          } catch (error) {
+            if (error instanceof MCPDevelopmentError) {
+              return {
+                content: [
+                  {
+                    type: 'text',
+                    text: error.toMCPResponse().helpText
+                  }
+                ]
+              };
+            }
+          }
+          
+          const validation = validateEventSchema(args.event_name as string, args.properties, args.context as string);
           return {
             content: [
               {
                 type: 'text',
-                text: JSON.stringify(result, null, 2),
+                text: `# Event Schema Validation: ${args.event_name}
+
+## ✅ Validation Results
+${validation.isValid ? '**Status**: Valid ✅' : '**Status**: Issues Found ❌'}
+
+${validation.issues.length > 0 ? `
+## ⚠️ Issues Found
+${validation.issues.map(issue => `- **${issue.severity}**: ${issue.message}`).join('\n')}
+` : ''}
+
+## 📋 Recommendations
+${validation.recommendations.map(rec => `- ${rec}`).join('\n')}
+
+## 🔧 Improved Schema
+\`\`\`typescript
+{
+  event: '${validation.improvedSchema.eventName}',
+  properties: {
+${Object.entries(validation.improvedSchema.properties).map(([key, type]) => `    ${key}: ${type}`).join(',\n')}
+  }
+}
+\`\`\`
+
+## 📝 Implementation Example
+\`\`\`typescript
+// Recommended implementation
+nodash.track('${validation.improvedSchema.eventName}', {
+${Object.entries(validation.improvedSchema.properties).map(([key, type]) => `  ${key}: ${getExampleValue(type as string)}`).join(',\n')}
+});
+\`\`\``,
               },
             ],
           };
         }
 
-        case 'query_events': {
-          const events = await eventsService.queryEvents(args);
-          return {
-            content: [
-              {
-                type: 'text',
-                text: JSON.stringify(events, null, 2),
-              },
-            ],
-          };
-        }
-
-        case 'track_event': {
-          if (!args?.event_name) {
-            throw new McpError(ErrorCode.InvalidParams, 'event_name is required');
+        case 'generate_tracking_code': {
+          if (!args?.event_name || !args?.framework) {
+            const error = new MCPDevelopmentError(
+              'Missing required parameters for code generation',
+              'MISSING_PARAMETERS',
+              [
+                'Provide both event_name and framework parameters',
+                'event_name should be a valid event name (e.g., "user_signup")',
+                'framework should be one of: react, vue, angular, express, nextjs',
+                'Example: { "event_name": "button_click", "framework": "react" }'
+              ],
+              [
+                {
+                  title: 'Valid Parameters Example',
+                  description: 'Example of correct parameters for code generation',
+                  language: 'json',
+                  code: `{
+  "event_name": "user_signup",
+  "framework": "react",
+  "properties": {
+    "email": "string",
+    "source": "string",
+    "plan": "string"
+  }
+}`
+                }
+              ]
+            );
+            return {
+              content: [
+                {
+                  type: 'text',
+                  text: error.toMCPResponse().helpText
+                }
+              ]
+            };
           }
           
-          const trackResult = await eventsService.trackEvent(args);
+          const code = generateTrackingCode(args.event_name as string, args.framework as string, args.properties);
           return {
             content: [
               {
                 type: 'text',
-                text: JSON.stringify(trackResult, null, 2),
+                text: `# Tracking Code for ${args.event_name} (${args.framework})
+
+## 🎯 Event Implementation
+
+### Basic Implementation
+\`\`\`${code.language}
+${code.basic}
+\`\`\`
+
+### Advanced Implementation with Error Handling
+\`\`\`${code.language}
+${code.advanced}
+\`\`\`
+
+### Component Integration Example
+\`\`\`${code.language}
+${code.component}
+\`\`\`
+
+## 📋 Setup Requirements
+${code.requirements.map(req => `- ${req}`).join('\n')}
+
+## 🧪 Testing
+\`\`\`${code.language}
+${code.testing}
+\`\`\`
+
+## 💡 Best Practices
+${code.bestPractices.map(practice => `- ${practice}`).join('\n')}`,
               },
             ],
           };
