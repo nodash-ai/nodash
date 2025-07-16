@@ -10,12 +10,32 @@ Welcome to the Nodash SDK! Whether you're a human developer who drinks too much 
 npm install @nodash/sdk
 ```
 
+### Node.js / CommonJS
+```javascript
+const { NodashSDK } = require('@nodash/sdk');
+
+const nodash = new NodashSDK('https://your-server.com', 'your-optional-token');
+```
+
+### ES Modules / Web
 ```typescript
 import { NodashSDK } from '@nodash/sdk';
 
-// Initialize with your server (yes, you need a server - shocking, we know)
 const nodash = new NodashSDK('https://your-server.com', 'your-optional-token');
+```
 
+### Browser (via CDN)
+```html
+<script type="module">
+  import { NodashSDK } from 'https://unpkg.com/@nodash/sdk/dist/index.esm.js';
+  
+  const nodash = new NodashSDK('https://your-server.com', 'your-optional-token');
+</script>
+```
+
+### Usage Examples
+
+```typescript
 // Track events (like your questionable 3 AM coding decisions)
 await nodash.track('user_signed_up', { 
   plan: 'premium',

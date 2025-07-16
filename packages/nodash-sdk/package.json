@@ -3,12 +3,20 @@
   "version": "0.1.0",
   "description": "Minimal SDK for nodash - the foundation layer",
   "main": "dist/index.js",
+  "module": "dist/index.esm.js",
   "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.esm.js",
+      "require": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
   "scripts": {
-    "build": "tsc",
+    "build": "node scripts/build-dual.js",
     "dev": "tsc --watch"
   },
-  "keywords": ["nodash", "sdk", "analytics", "tracking"],
+  "keywords": ["nodash", "sdk", "analytics", "tracking", "web", "browser", "esm"],
   "author": "Nodash Team",
   "license": "MIT",
   "dependencies": {},
