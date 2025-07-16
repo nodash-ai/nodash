@@ -1,6 +1,6 @@
 {
   "name": "@nodash/mcp",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "MCP server for nodash - AI agent layer",
   "main": "dist/index.js",
   "bin": {
@@ -14,7 +14,12 @@
     "test": "vitest",
     "test:run": "vitest run"
   },
-  "keywords": ["nodash", "mcp", "ai-agents", "model-context-protocol"],
+  "keywords": [
+    "nodash",
+    "mcp",
+    "ai-agents",
+    "model-context-protocol"
+  ],
   "author": "Nodash Team",
   "license": "MIT",
   "dependencies": {
