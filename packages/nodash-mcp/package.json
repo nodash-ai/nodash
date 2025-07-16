@@ -18,8 +18,8 @@
   "author": "Nodash Team",
   "license": "MIT",
   "dependencies": {
-    "@nodash/sdk": "file:../nodash-sdk",
-    "@nodash/cli": "file:../nodash-cli",
+    "@nodash/sdk": "^0.1.0",
+    "@nodash/cli": "^0.1.0",
     "@modelcontextprotocol/sdk": "^0.4.0"
   },
   "devDependencies": {

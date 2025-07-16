@@ -16,7 +16,7 @@
   "author": "Nodash Team",
   "license": "MIT",
   "dependencies": {
-    "@nodash/sdk": "file:../nodash-sdk",
+    "@nodash/sdk": "^0.1.0",
     "commander": "^11.0.0"
   },
   "devDependencies": {
