@@ -1,53 +1,28 @@
 {
   "name": "@nodash/cli",
-  "version": "1.0.2",
-  "description": "Comprehensive CLI for Nodash analytics platform with event tracking, metrics monitoring, and project analysis",
+  "version": "0.1.0",
+  "description": "CLI tool for nodash - developer layer",
   "main": "dist/index.js",
-  "type": "module",
   "bin": {
     "nodash": "dist/cli.js"
   },
   "scripts": {
     "build": "tsc",
-    "dev": "tsc --watch",
-    "clean": "rm -rf dist",
-    "start": "node dist/cli.js",
-    "test": "vitest run",
-    "test:watch": "vitest",
-    "lint": "eslint src",
-    "type-check": "tsc --noEmit"
+    "dev": "tsc --watch"
   },
-  "keywords": [
-    "analytics",
-    "cli",
-    "monitoring",
-    "metrics",
-    "tracking",
-    "events",
-    "configuration",
-    "health-check",
-    "project-analysis",
-    "sdk"
-  ],
+  "keywords": ["nodash", "cli", "developer-tools"],
   "author": "Nodash Team",
   "license": "MIT",
   "dependencies": {
-    "@nodash/sdk": "^1.0.3",
-    "chalk": "^5.4.1",
-    "commander": "^11.1.0"
+    "@nodash/sdk": "file:../nodash-sdk",
+    "commander": "^11.0.0"
   },
   "devDependencies": {
-    "@types/node": "^20.19.2",
     "typescript": "^5.0.0",
-    "vitest": "^1.2.2",
-    "eslint": "^8.0.0"
-  },
-  "engines": {
-    "node": ">=18.0.0"
+    "@types/node": "^20.0.0"
   },
   "files": [
-    "dist",
-    "README.md",
-    "package.json"
+    "dist/**/*",
+    "README.md"
   ]
 }

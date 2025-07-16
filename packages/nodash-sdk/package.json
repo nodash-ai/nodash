@@ -1,38 +1,22 @@
 {
   "name": "@nodash/sdk",
-  "version": "1.0.3",
-  "description": "Nodash Analytics SDK - Runtime event tracking",
+  "version": "0.1.0",
+  "description": "Minimal SDK for nodash - the foundation layer",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
     "build": "tsc",
-    "dev": "tsc --watch",
-    "clean": "rm -rf dist",
-    "test": "vitest run",
-    "lint": "eslint src",
-    "type-check": "tsc --noEmit"
+    "dev": "tsc --watch"
   },
-  "dependencies": {
-    "p-queue": "^8.1.0",
-    "uuid": "^9.0.0"
-  },
+  "keywords": ["nodash", "sdk", "analytics", "tracking"],
+  "author": "Nodash Team",
+  "license": "MIT",
+  "dependencies": {},
   "devDependencies": {
-    "@types/p-queue": "^3.1.0",
-    "@types/uuid": "^9.0.8",
-    "@typescript-eslint/eslint-plugin": "^8.36.0",
-    "@typescript-eslint/parser": "^8.36.0",
-    "eslint": "^9.30.1",
     "typescript": "^5.0.0"
   },
-  "type": "module",
   "files": [
-    "dist/"
-  ],
-  "keywords": [
-    "analytics",
-    "tracking",
-    "events"
-  ],
-  "author": "Nodash Team",
-  "license": "MIT"
+    "dist/**/*",
+    "README.md"
+  ]
 }

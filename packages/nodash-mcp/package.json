@@ -1,70 +1,33 @@
 {
-  "name": "@nodash/mcp-server",
-  "version": "1.0.4",
-  "description": "Nodash MCP - Model Context Protocol integration for AI-assisted analytics (not for npm)",
-  "main": "dist/server.js",
-  "types": "dist/server.d.ts",
+  "name": "@nodash/mcp",
+  "version": "0.1.0",
+  "description": "MCP server for nodash - AI agent layer",
+  "main": "dist/index.js",
   "bin": {
-    "nodash-mcp-server": "dist/server.js"
+    "nodash-mcp": "dist/server.js"
   },
   "scripts": {
+    "prebuild": "node scripts/bundle-docs.js",
     "build": "tsc",
     "dev": "tsc --watch",
-    "clean": "rm -rf dist",
-    "prepublishOnly": "npm run clean && npm run build",
-    "start": "node dist/server.js",
-    "test": "jest",
-    "test:watch": "jest --watch",
-    "test:coverage": "jest --coverage",
-    "test:integration": "jest --testPathPattern=integration",
-    "test:performance": "jest --testPathPattern=performance",
-    "lint": "eslint src --ext .ts",
-    "type-check": "tsc --noEmit"
+    "start": "node dist/server.js"
   },
-  "keywords": [
-    "mcp",
-    "model-context-protocol",
-    "ai",
-    "analytics",
-    "claude",
-    "llm",
-    "typescript"
-  ],
+  "keywords": ["nodash", "mcp", "ai-agents", "model-context-protocol"],
   "author": "Nodash Team",
   "license": "MIT",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/your-org/nodash.git",
-    "directory": "packages/nodash-mcp"
-  },
-  "bugs": {
-    "url": "https://github.com/your-org/nodash/issues"
-  },
-  "homepage": "https://nodash.ai",
-  "files": [
-    "dist",
-    "README.md",
-    "LICENSE"
-  ],
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.0.0"
+    "@nodash/sdk": "file:../nodash-sdk",
+    "@nodash/cli": "file:../nodash-cli",
+    "@modelcontextprotocol/sdk": "^0.4.0"
   },
   "devDependencies": {
-    "@nodash/sdk": "^1.0.0",
-    "@types/jest": "^29.5.0",
-    "@types/node": "^20.0.0",
-    "@typescript-eslint/eslint-plugin": "^6.21.0",
-    "@typescript-eslint/parser": "^6.21.0",
-    "eslint": "^8.57.1",
-    "jest": "^29.5.0",
-    "ts-jest": "^29.1.0",
-    "typescript": "^5.0.0"
+    "typescript": "^5.0.0",
+    "@types/node": "^20.0.0"
   },
-  "type": "module",
-  "engines": {
-    "node": ">=18.0.0"
-  },
-  "publishConfig": {
-    "access": "public"
-  }
+  "files": [
+    "dist/**/*",
+    "README.md",
+    "../nodash-sdk/README.md",
+    "../nodash-cli/README.md"
+  ]
 }

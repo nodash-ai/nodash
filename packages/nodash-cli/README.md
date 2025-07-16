@@ -1,341 +1,348 @@
-# @nodash/cli
+# @nodash/cli 🛠️
 
-Command-line interface for Nodash analytics platform. Provides comprehensive analytics operations including event tracking, metrics monitoring, configuration management, and project analysis.
+> The developer's best friend (after coffee and Stack Overflow)
+
+The Nodash CLI is your command-line companion for all things nodash. Whether you're a human developer debugging at 2 AM or an AI agent orchestrating complex workflows, this CLI has got your back.
 
 ## Installation
 
 ```bash
-# Run directly with npx (recommended)
-npx @nodash/cli --help
-
-# Or install globally
 npm install -g @nodash/cli
+```
+
+Or if you prefer living on the edge:
+```bash
+npx @nodash/cli --help
 ```
 
 ## Quick Start
 
-1. **Set up your API token:**
-   ```bash
-   nodash config set token your-api-token
-   ```
-
-2. **Test connectivity:**
-   ```bash
-   nodash health
-   ```
-
-3. **Analyze your project:**
-   ```bash
-   nodash analyze --setup
-   ```
-
-## Commands
-
-### Configuration Management
-
-#### `nodash config`
-
-Manage CLI configuration and authentication:
-
 ```bash
-# Set API token
-nodash config set token your-api-token
+# Initialize your configuration (do this first, seriously)
+nodash init --url https://your-server.com --token your-optional-token
 
-# Set custom API base URL
-nodash config set baseUrl https://api.nodash.ai
-
-# Get specific configuration value
-nodash config get token
-
-# List all configuration
-nodash config list
-
-# List configuration as JSON
-nodash config list --format json
-```
-
-### Event Tracking
-
-#### `nodash track <event>`
-
-Track analytics events directly from the command line:
-
-```bash
-# Track a simple event
-nodash track user_signup
-
-# Track event with properties
-nodash track user_signup --properties '{"plan": "pro", "source": "cli"}'
-
-# Track with user and session IDs
-nodash track page_view --user-id user123 --session-id session456
-
-# Dry run (show what would be sent)
-nodash track purchase --properties '{"amount": 99.99}' --dry-run
-
-# Output as JSON
-nodash track login --format json
-```
-
-### Metrics Monitoring
-
-#### `nodash metric <name> <value>`
-
-Send metrics to Nodash monitoring:
-
-```bash
-# Send a simple metric
-nodash metric response_time 150
-
-# Send metric with unit
-nodash metric response_time 150 --unit ms
-
-# Send metric with tags
-nodash metric cpu_usage 75 --tags service=api,region=us-east
-
-# Dry run mode
-nodash metric memory_usage 512 --unit MB --dry-run
-
-# Output as JSON
-nodash metric disk_usage 85 --format json
-```
-
-### Health Monitoring
-
-#### `nodash health`
-
-Check Nodash service health and connectivity:
-
-```bash
-# Basic health check
+# Check if everything is working
 nodash health
 
-# Verbose health information
-nodash health --verbose
-
-# Output as JSON
-nodash health --format json
-
-# Custom timeout
-nodash health --timeout 5000
+# Track your first event (celebrate! 🎉)
+nodash track "cli_first_use" --properties '{"excitement_level": "maximum"}'
 ```
 
-### Project Analysis
+## Commands Reference
 
-#### `nodash analyze [path]`
+### `nodash init`
 
-Analyze your project for analytics integration:
+Initialize your nodash configuration. This is your starting point.
 
 ```bash
-# Analyze current directory
-nodash analyze
-
-# Analyze specific directory
-nodash analyze /path/to/project
-
-# Show verbose information and code examples
-nodash analyze --verbose
-
-# Generate setup files
-nodash analyze --setup
-
-# Force re-analysis
-nodash analyze --force
-
-# Output as JSON
-nodash analyze --json
+nodash init [options]
 ```
 
-## Features
+**Options:**
+- `--url, -u <url>`: Base URL for your nodash server
+- `--token, -t <token>`: API token (optional, depends on your server)
 
-### 🔧 Configuration Management
-- Secure local storage of API credentials
-- Support for user-level and project-level configuration
-- Configuration validation with helpful error messages
-- Masked display of sensitive values
-
-### 📊 Event Tracking
-- Direct event tracking via SDK integration
-- JSON properties support with validation
-- Dry-run mode for testing
-- User and session ID support
-
-### 📈 Metrics Monitoring
-- Real-time metric sending
-- Support for units and tags
-- Comprehensive validation
-- Dry-run capabilities
-
-### 🏥 Health Monitoring
-- Service connectivity testing
-- Detailed health diagnostics
-- Response time monitoring
-- Troubleshooting guidance
-
-### 🔍 Project Analysis
-- Framework detection (React, Vue, Angular, Next.js, Express, etc.)
-- SDK integration examples
-- Setup file generation
-- Configuration validation
-
-### 🎨 User Experience
-- Colored output with --no-color option
-- Multiple output formats (table, JSON)
-- Progress indicators and status messages
-- Comprehensive error handling with solutions
-
-## Configuration
-
-The CLI stores configuration in two locations:
-
-- **User-level**: `~/.nodash/config.json` (global defaults)
-- **Project-level**: `./.nodash/config.json` (project-specific overrides)
-
-### Configuration Options
-
-| Option | Description | Default |
-|--------|-------------|---------|
-| `token` | API authentication token | Required |
-| `baseUrl` | API base URL | `https://api.nodash.ai` |
-| `timeout` | Request timeout (ms) | `30000` |
-| `retries` | Number of retry attempts | `3` |
-| `defaultFormat` | Default output format | `table` |
-| `verbose` | Enable verbose logging | `false` |
-
-## Error Handling
-
-The CLI provides comprehensive error handling with actionable solutions:
-
-### Common Issues
-
-**Missing API Token:**
+**Examples:**
 ```bash
-❌ Configuration Error: API token not configured
-💡 Run: nodash config set token <your-api-token>
+# Full setup
+nodash init --url https://api.nodash.com --token sk-your-secret-token
+
+# Just the URL (for servers that don't need tokens)
+nodash init --url http://localhost:3000
+
+# Interactive mode (coming soon™)
+nodash init
 ```
 
-**Network Connectivity:**
+### `nodash config`
+
+Manage your configuration like a pro.
+
 ```bash
-❌ Network Error: Unable to connect to Nodash API
-💡 Check your internet connection
-💡 Try: nodash health to test connectivity
+nodash config <action> [key] [value]
 ```
 
-**Invalid JSON Properties:**
+**Actions:**
+- `get`: Retrieve configuration values
+- `set`: Set configuration values
+
+**Examples:**
 ```bash
-❌ Validation Error: Invalid JSON in properties
-💡 Example: nodash track signup --properties '{"plan": "pro"}'
+# View all configuration
+nodash config get
+
+# Get specific value
+nodash config get baseUrl
+
+# Set a value
+nodash config set baseUrl https://new-server.com
+nodash config set apiToken your-new-token
 ```
 
-## Examples
+### `nodash track`
 
-### Basic Workflow
+Track events that happen in your application. The bread and butter of analytics.
 
 ```bash
-# 1. Set up authentication
-nodash config set token your-api-token
+nodash track <event> [options]
+```
 
-# 2. Test connectivity
+**Options:**
+- `--properties, -p <json>`: Event properties as JSON string
+
+**Examples:**
+```bash
+# Simple event
+nodash track "user_login"
+
+# Event with properties
+nodash track "purchase_completed" --properties '{"amount": 99.99, "currency": "USD"}'
+
+# Complex properties (AI agents love this)
+nodash track "ai_interaction" --properties '{
+  "model": "gpt-4",
+  "tokens": 1337,
+  "user_satisfaction": "probably_good",
+  "coffee_level": "dangerously_low"
+}'
+```
+
+### `nodash health`
+
+Check if your server is still breathing. Essential for debugging and monitoring.
+
+```bash
 nodash health
+```
 
-# 3. Track some events
-nodash track app_started
-nodash track user_action --properties '{"action": "click", "element": "button"}'
+**Example Output:**
+```
+🏥 Server Health Status:
+Status: healthy
+Version: 1.0.0
+Uptime: 3600s
 
-# 4. Send metrics
-nodash metric response_time 245 --unit ms --tags endpoint=/api/users
+Health Checks:
+  ✅ database: pass
+  ✅ redis: pass
+  ❌ coffee_machine: fail
+     Error: Out of coffee beans
+```
 
-# 5. Analyze your project
-nodash analyze --setup
+## For AI Agents 🤖
+
+Hey there, digital colleagues! Here's what you need to know to use this CLI effectively:
+
+### Agent-Friendly Patterns
+
+**Configuration Management:**
+```bash
+# Always check configuration first
+nodash config get
+
+# Set up for different environments
+nodash config set baseUrl $NODASH_URL
+nodash config set apiToken $NODASH_TOKEN
+```
+
+**Event Tracking with Structured Data:**
+```bash
+# Track user interactions
+nodash track "user_action" --properties '{
+  "action_type": "click",
+  "element": "submit_button",
+  "page": "/checkout",
+  "timestamp": "'$(date -u +%Y-%m-%dT%H:%M:%S.%3NZ)'"
+}'
+
+# Track system events
+nodash track "system_event" --properties '{
+  "event_type": "deployment",
+  "version": "1.2.3",
+  "environment": "production",
+  "success": true
+}'
+```
+
+**Health Monitoring:**
+```bash
+# Check health and parse output
+if nodash health | grep -q "healthy"; then
+  echo "System is operational"
+else
+  echo "System needs attention"
+fi
+```
+
+### JSON Property Guidelines
+
+When using `--properties`, ensure your JSON is valid:
+
+✅ **Good:**
+```bash
+nodash track "event" --properties '{"key": "value", "number": 42}'
+```
+
+❌ **Bad:**
+```bash
+nodash track "event" --properties "{key: value}"  # Missing quotes
+nodash track "event" --properties '{'key': 'value'}'  # Wrong quotes
+```
+
+### Error Handling
+
+The CLI provides clear error messages:
+
+```bash
+# Missing configuration
+$ nodash track "test"
+❌ Track error: No base URL configured. Run "nodash config set baseUrl <url>" first.
+
+# Invalid JSON
+$ nodash track "test" --properties '{invalid}'
+❌ Invalid JSON in properties
+
+# Network issues
+$ nodash health
+❌ Health check failed: Request failed: connect ECONNREFUSED 127.0.0.1:3000
+```
+
+## Configuration File
+
+The CLI stores configuration in `~/.nodash/config.json`:
+
+```json
+{
+  "baseUrl": "https://api.nodash.com",
+  "apiToken": "sk-your-token",
+  "environment": "production"
+}
+```
+
+You can edit this file directly if you prefer, but using `nodash config` is safer.
+
+## Integration Examples
+
+### CI/CD Pipeline
+
+```bash
+#!/bin/bash
+# Track deployment events
+nodash track "deployment_started" --properties '{
+  "version": "'$VERSION'",
+  "environment": "'$ENVIRONMENT'",
+  "commit": "'$GIT_COMMIT'"
+}'
+
+# Your deployment logic here...
+
+if [ $? -eq 0 ]; then
+  nodash track "deployment_completed" --properties '{
+    "version": "'$VERSION'",
+    "environment": "'$ENVIRONMENT'",
+    "success": true
+  }'
+else
+  nodash track "deployment_failed" --properties '{
+    "version": "'$VERSION'",
+    "environment": "'$ENVIRONMENT'",
+    "success": false
+  }'
+fi
 ```
 
 ### Development Workflow
 
 ```bash
-# Test events before implementing
-nodash track user_signup --properties '{"plan": "pro"}' --dry-run
+# Track development activities
+alias git-commit='git commit && nodash track "code_committed" --properties "{\"repo\": \"$(basename $(git rev-parse --show-toplevel))\"}"'
 
-# Monitor API performance
-nodash metric api_response_time 150 --unit ms --tags method=GET,endpoint=/users
-
-# Check service health
-nodash health --verbose
-
-# Generate integration code
-nodash analyze --setup --verbose
+# Monitor application health during development
+watch -n 30 nodash health
 ```
 
-### CI/CD Integration
+### Agent Automation
 
 ```bash
-# Set token from environment
-nodash config set token $NODASH_TOKEN
+#!/bin/bash
+# Agent script for monitoring and tracking
 
-# Send deployment metrics
-nodash metric deployment_duration 120 --unit seconds --tags environment=production
-
-# Track deployment events
-nodash track deployment_completed --properties '{"version": "1.2.3", "environment": "production"}'
+# Check system health
+HEALTH=$(nodash health 2>&1)
+if echo "$HEALTH" | grep -q "healthy"; then
+  nodash track "health_check" --properties '{"status": "healthy", "automated": true}'
+else
+  nodash track "health_check" --properties '{"status": "unhealthy", "automated": true}'
+  # Trigger alerts or remediation
+fi
 ```
-
-## Global Options
-
-All commands support these global options:
-
-- `--no-color`: Disable colored output
-- `--verbose`: Enable verbose logging
-- `--format <format>`: Set output format (json, table)
-
-## Requirements
-
-- Node.js 18+
-- Valid Nodash API token
-- Internet connectivity for API calls
 
 ## Troubleshooting
 
-### Configuration Issues
+**Q: Command not found: nodash**
+A: Make sure you installed globally (`npm install -g @nodash/cli`) or use `npx @nodash/cli`
+
+**Q: "No base URL configured" error**
+A: Run `nodash init --url <your-server-url>` first
+
+**Q: JSON parsing errors**
+A: Check your JSON syntax. Use single quotes around the JSON string and double quotes inside.
+
+**Q: Connection refused errors**
+A: Check if your server is running and the URL is correct. Try `nodash config get baseUrl`
+
+**Q: Authentication errors**
+A: Verify your API token with `nodash config get apiToken` or set a new one
+
+## Advanced Usage
+
+### Environment Variables
+
+You can override configuration with environment variables:
+
 ```bash
-# Check current configuration
-nodash config list
-
-# Validate configuration
-nodash health
-
-# Reset configuration
-rm ~/.nodash/config.json ./.nodash/config.json
+export NODASH_URL="https://staging.nodash.com"
+export NODASH_TOKEN="sk-staging-token"
+nodash health  # Uses environment variables
 ```
 
-### Network Issues
+### Scripting
+
+The CLI is designed to be script-friendly:
+
 ```bash
-# Test connectivity
-nodash health --verbose
+# Exit codes: 0 = success, 1 = error
+nodash health > /dev/null 2>&1
+if [ $? -eq 0 ]; then
+  echo "Server is healthy"
+fi
 
-# Check base URL
-nodash config get baseUrl
-
-# Use default URL
-nodash config set baseUrl https://api.nodash.ai
+# JSON output parsing (coming in future versions)
+# nodash health --json | jq '.status'
 ```
 
-### Authentication Issues
-```bash
-# Verify token
-nodash config get token
+## What's Next?
 
-# Test authentication
-nodash health
+Future versions will include:
+- Interactive configuration setup
+- Batch operations
+- JSON output format
+- Plugin system
+- More tracking utilities
 
-# Set new token
-nodash config set token your-new-token
-```
+## Contributing
 
-## Support
+Found a bug? Want a feature? We'd love your help!
 
-- Documentation: https://docs.nodash.ai/cli
-- Issues: https://github.com/nodash/nodash/issues
-- Support: support@nodash.ai
+1. Check existing issues
+2. Create a new issue or PR
+3. Follow our coding standards (keep it simple!)
+4. Update documentation (including these jokes)
 
 ## License
 
-MIT 
+MIT - Because open source makes the world go round.
+
+---
+
+*Built with ❤️ and an unhealthy amount of terminal usage by the Nodash team*

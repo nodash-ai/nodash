@@ -1,58 +1,20 @@
 {
-  "name": "nodash",
-  "version": "1.0.0",
-  "description": "Zero-configuration analytics with intelligent AI guidance - Developer tools and integrations",
-  "private": false,
+  "name": "nodash-monorepo",
+  "version": "0.1.0",
+  "description": "Nodash - Clean SDK-first architecture",
+  "private": true,
   "workspaces": [
     "packages/*"
   ],
   "scripts": {
-    "build": "tsc --build",
-    "build:packages": "npm run build --workspaces",
+    "build": "npm run build --workspaces",
     "dev": "npm run dev --workspaces",
-    "start": "npm run start --workspaces",
-    "test": "npm run test --workspaces",
-    "lint": "npm run lint --workspaces",
-    "clean": "npm run clean --workspaces && tsc --build --clean"
-  },
-  "keywords": [
-    "analytics",
-    "mcp",
-    "ai",
-    "development-tools",
-    "model-context-protocol",
-    "typescript",
-    "javascript",
-    "react",
-    "vue",
-    "angular",
-    "developer-experience",
-    "open-source"
-  ],
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/nodash-ai/nodash.git"
-  },
-  "homepage": "https://nodash.ai",
-  "bugs": {
-    "url": "https://github.com/nodash-ai/nodash/issues"
-  },
-  "license": "MIT",
-  "engines": {
-    "node": ">=18.0.0"
+    "clean": "rm -rf packages/*/dist"
   },
   "devDependencies": {
-    "@types/node": "^20.0.0",
-    "happy-dom": "^18.0.1",
-    "jsdom": "^24.0.0",
-    "typescript": "^5.0.0",
-    "vitest": "^1.2.2"
+    "typescript": "^5.0.0"
   },
-  "publishConfig": {
-    "access": "public"
-  },
-  "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.0.0",
-    "uri-js": "^4.4.1"
+  "engines": {
+    "node": ">=18.0.0"
   }
 }

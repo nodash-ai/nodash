@@ -1,329 +1,293 @@
-# Nodash MCP Server
+# @nodash/mcp 🤖
 
-**AI-powered development assistant for analytics integration with CLI integration**
+> AI Agent interface that makes your bots smarter (and occasionally funnier)
 
-The Nodash MCP (Model Context Protocol) server is a development-time tool that helps AI agents understand and implement Nodash analytics in your projects. It provides code analysis, implementation guidance, working examples, and now includes **CLI integration** for enhanced functionality including live configuration, testing, and validation.
+The Nodash MCP (Model Context Protocol) server is the AI agent layer of the nodash ecosystem. It automatically consumes CLI and SDK documentation, provides dynamic tool discovery, and helps agents set up projects optimally.
 
-## 🎯 Purpose
+## Installation
 
-This MCP server is designed to help developers and AI agents:
-- **Analyze projects** for analytics integration opportunities
-- **Generate implementation guides** with step-by-step instructions
-- **Provide code examples** for different frameworks
-- **Validate event schemas** and suggest improvements
-- **Access working examples** from the examples directory
-- **🆕 Execute CLI commands** with safety checks and validation
-- **🆕 Run automated workflows** for setup, validation, and troubleshooting
-- **🆕 Live configuration management** through CLI integration
-- **🆕 Real-time health monitoring** and diagnostics
+```bash
+npm install -g @nodash/mcp
+```
 
-## 🚀 Quick Setup
+## Quick Start
 
-### For Claude Desktop
+```bash
+# Start the MCP server
+nodash-mcp
+```
 
-Add to your Claude Desktop configuration (`~/Library/Application Support/Claude/claude_desktop_config.json`):
+Then configure in your MCP client (e.g., Kiro):
 
 ```json
 {
   "mcpServers": {
     "nodash": {
-      "command": "npx",
-      "args": ["@nodash/mcp-server@latest"]
+      "command": "nodash-mcp"
     }
   }
 }
 ```
 
-### For Other MCP Clients
+## Features
+
+### 🔧 Dynamic Tool Discovery
+The MCP server automatically provides tools based on nodash capabilities:
+
+- **setup_project**: Configure nodash for optimal usage
+- **run_cli_command**: Execute CLI commands programmatically  
+- **get_documentation**: Access latest docs and examples
+
+### 📚 Self-Updating Documentation
+Documentation is embedded statically, so it's always available regardless of deployment:
+
+- SDK documentation with examples
+- CLI documentation with usage patterns
+- Automatic example extraction from code blocks
+
+### 🎯 Agent Optimization
+Built specifically to help AI agents:
+
+- Project setup optimization
+- Best practices guidance
+- Structured error handling
+- Clear tool descriptions
+
+## Available Tools
+
+### setup_project
+
+Configure a nodash project with optimal settings.
+
+**Parameters:**
+- `baseUrl` (required): Server URL
+- `apiToken` (optional): Authentication token
+- `environment` (optional): Environment name
+
+**Example:**
+```json
+{
+  "baseUrl": "https://api.example.com",
+  "apiToken": "sk-your-token",
+  "environment": "production"
+}
+```
+
+### run_cli_command
+
+Execute nodash CLI commands programmatically.
+
+**Parameters:**
+- `command` (required): CLI command (without "nodash" prefix)
+- `args` (optional): Command arguments array
+
+**Examples:**
+```json
+{
+  "command": "health"
+}
+```
+
+```json
+{
+  "command": "track",
+  "args": ["user_action", "--properties", "{\"type\": \"click\"}"]
+}
+```
+
+### get_documentation
+
+Retrieve documentation for SDK or CLI components.
+
+**Parameters:**
+- `component` (required): "sdk" or "cli"
+
+**Example:**
+```json
+{
+  "component": "sdk"
+}
+```
+
+## Available Resources
+
+### nodash://docs/sdk
+Complete SDK documentation with examples in Markdown format.
+
+### nodash://docs/cli  
+Complete CLI documentation with usage patterns in Markdown format.
+
+## Agent Usage Patterns
+
+### Project Setup Workflow
+
+```typescript
+// 1. Set up the project
+const setupResult = await mcp.callTool('setup_project', {
+  baseUrl: 'https://api.example.com',
+  apiToken: 'sk-token'
+});
+
+// 2. Verify health
+const healthResult = await mcp.callTool('run_cli_command', {
+  command: 'health'
+});
+
+// 3. Start tracking events
+const trackResult = await mcp.callTool('run_cli_command', {
+  command: 'track',
+  args: ['project_initialized', '--properties', '{"agent": "ai-assistant"}']
+});
+```
+
+### Documentation Discovery
+
+```typescript
+// Get SDK documentation
+const sdkDocs = await mcp.callTool('get_documentation', {
+  component: 'sdk'
+});
+
+// Extract examples for learning
+const examples = sdkDocs.examples;
+console.log(`Found ${examples.length} SDK examples`);
+```
+
+### Error Handling
+
+The MCP server provides structured error responses:
+
+```json
+{
+  "success": false,
+  "message": "Setup failed: Invalid base URL format",
+  "error": "baseUrl must be a valid URL"
+}
+```
+
+## Architecture
+
+The MCP server sits at the top of the nodash architecture:
+
+```
+┌─────────────────┐
+│   @nodash/mcp   │  ← AI Agent Layer (this package)
+│  (AI Agents)    │
+└─────────────────┘
+         ↑
+┌─────────────────┐
+│   @nodash/cli   │  ← Developer Layer
+│  (Developer)    │
+└─────────────────┘
+         ↑
+┌─────────────────┐
+│   @nodash/sdk   │  ← Foundation Layer
+│   (Foundation)  │
+└─────────────────┘
+```
+
+## Development
+
+### Building
 
 ```bash
-# Run directly
-npx @nodash/mcp-server@latest
-
-# Or install globally
-npm install -g @nodash/mcp-server
-nodash-mcp-server
-```
-
-## 🔧 Available Tools
-
-### Development Analysis Tools
-- **`readme`** - Get comprehensive usage guide for the MCP server
-- **`analyze_project`** - Analyze project structure and get implementation recommendations
-- **`advanced_analysis`** - Deep code analysis with AI-powered insights and event opportunities
-- **`implementation_guide`** - Generate step-by-step implementation instructions for your framework
-
-### Event Design Tools
-- **`get_event_templates`** - Get event schema templates for common business types (e-commerce, SaaS, etc.)
-- **`validate_event_schema`** - Validate event schema design and get improvement recommendations
-- **`generate_tracking_code`** - Generate framework-specific tracking code examples
-
-### 🆕 CLI Integration Tools
-- **`setup_nodash_complete`** - Complete Nodash setup with configuration, analysis, and validation using CLI
-- **`execute_cli_command`** - Execute any Nodash CLI command with safety checks and confirmation
-- **`validate_implementation`** - Comprehensive validation of Nodash implementation using CLI diagnostics
-- **`troubleshoot_issues`** - Automated troubleshooting using CLI diagnostics and analysis
-- **`execute_workflow`** - Execute predefined workflows for common tasks (setup, validation, health-check)
-
-## 📚 Available Resources
-
-### Documentation Resources
-- **`nodash://sdk/readme`** - Complete SDK documentation
-- **`nodash://sdk/quick-start`** - 5-minute quick start guide
-- **`nodash://sdk/framework-guides`** - Framework-specific integration guides
-- **`nodash://sdk/api-reference`** - Complete API reference
-
-### Example Resources
-- **`nodash://examples/overview`** - Overview of all available examples
-- **`nodash://examples/react`** - Complete React integration example
-- **`nodash://examples/react/app`** - React App component with analytics
-- **`nodash://examples/react/main`** - React application entry point
-
-## 💡 Available Prompts
-
-- **`implement-analytics`** - Get personalized implementation guidance
-- **`debug-analytics`** - Get help debugging analytics issues
-- **`design-events`** - Get guidance on designing event schemas
-- **`migrate-analytics`** - Get help migrating from other analytics solutions
-- **`optimize-performance`** - Get performance optimization recommendations
-
-## 🎯 Usage Examples
-
-### Project Analysis
-```
-"Analyze my current project and suggest how to integrate analytics"
-```
-
-### Implementation Guidance
-```
-"Generate an implementation guide for React with TypeScript"
-```
-
-### Event Design
-```
-"Get event templates for an e-commerce business"
-"Validate my user_signup event schema"
-```
-
-### Code Generation
-```
-"Generate React tracking code for a button_click event"
-"Show me Vue.js examples for page tracking"
-```
-
-### Example Access
-```
-"Show me the React example from the examples directory"
-"What examples are available for different frameworks?"
-```
-
-### 🆕 CLI Integration Examples
-```
-"Set up Nodash completely with my API token"
-"Validate my current Nodash implementation"
-"Run health checks and diagnostics"
-"Execute a complete setup workflow"
-"Troubleshoot my analytics issues"
-```
-
-## 🏗️ Development Workflow
-
-### Recommended AI Agent Workflow
-
-1. **Project Analysis**: Start with `analyze_project` to understand the codebase
-2. **Advanced Insights**: Use `advanced_analysis` for comprehensive recommendations
-3. **Implementation Plan**: Get `implementation_guide` for step-by-step instructions
-4. **Event Design**: Use `get_event_templates` and `validate_event_schema` for event planning
-5. **Code Generation**: Use `generate_tracking_code` for framework-specific examples
-6. **Example Reference**: Access working examples through resources
-
-### 🆕 Enhanced CLI-Integrated Workflow
-
-1. **Complete Setup**: Use `setup_nodash_complete` with API token for full configuration
-2. **Live Validation**: Use `validate_implementation` to test your setup in real-time
-3. **Health Monitoring**: Use `execute_cli_command` with `health` for connectivity checks
-4. **Automated Workflows**: Use `execute_workflow` for common tasks like setup and validation
-5. **Issue Resolution**: Use `troubleshoot_issues` for automated diagnostics and solutions
-
-### Example AI Conversation Flow
-
-```
-Human: Help me add analytics to my React app
-
-AI: I'll help you integrate Nodash analytics into your React application. Let me start by analyzing your project structure.
-
-[Uses analyze_project tool]
-
-Based on the analysis, I can see you have a React application with TypeScript. Let me generate a comprehensive implementation guide for you.
-
-[Uses implementation_guide tool with framework: "react", language: "typescript"]
-
-Now let me show you some event templates that would be relevant for your application type.
-
-[Uses get_event_templates tool]
-
-Here's a complete step-by-step plan with code examples...
-```
-
-## 🔍 Key Features
-
-### Smart Project Analysis
-- **Framework Detection**: Automatically detects React, Vue, Next.js, Express, Angular, and more
-- **Business Type Detection**: Identifies e-commerce, SaaS, content sites for targeted recommendations
-- **Dependency Analysis**: Checks for existing analytics tools and suggests migration paths
-- **Implementation Roadmap**: Provides phased implementation plan with time estimates
-
-### Code Generation
-- **Framework-Specific**: Generates code tailored to your specific framework
-- **Best Practices**: Includes error handling, performance optimization, and testing patterns
-- **Complete Examples**: Provides working code that can be copied directly into projects
-
-### Event Schema Validation
-- **Naming Conventions**: Validates snake_case naming and descriptive event names
-- **Property Validation**: Ensures proper property types and required fields
-- **Best Practice Suggestions**: Recommends improvements based on analytics best practices
-
-### Working Examples Access
-- **Live Examples**: Access to complete, working examples from the examples directory
-- **Multiple Frameworks**: Examples for React, Vue, Next.js, Express, and more
-- **Real Implementation**: Shows actual SDK integration patterns used in production
-
-### 🆕 CLI Integration Features
-- **Secure Command Execution**: All CLI commands are validated and sanitized for security
-- **Dry-Run Mode**: Commands default to dry-run mode for safety, with explicit confirmation for destructive operations
-- **Automated Workflows**: Pre-built workflows for common tasks like setup, validation, and troubleshooting
-- **Real-Time Diagnostics**: Live health checks and connectivity testing
-- **Configuration Management**: Secure token storage and configuration validation
-- **Error Recovery**: Intelligent error handling with fallback to MCP-only functionality
-- **Performance Monitoring**: Command caching and execution time tracking
-
-## 🛠️ Development Setup
-
-```bash
-# Clone the repository
-git clone https://github.com/your-org/nodash.git
-cd nodash/packages/nodash-mcp
-
-# Install dependencies
-npm install
-
-# Build the server
 npm run build
-
-# Run locally
-npm start
-
-# Run tests
-npm test
-
-# Type checking
-npm run type-check
 ```
 
-## 📋 Requirements
+### Development Mode
 
-- **Node.js** ≥ 18.0.0
-- **NPM** or compatible package manager
-- **MCP-compatible client** (Claude Desktop, etc.)
-
-## 🔧 Configuration
-
-The MCP server works out of the box with no configuration required. It automatically:
-- Detects your project structure
-- Finds the examples directory
-- Caches analysis results for performance
-- Provides context-aware recommendations
-
-### 🆕 CLI Integration Configuration
-
-The MCP server automatically detects and integrates with the Nodash CLI when available:
-
-- **Automatic Detection**: Checks for CLI availability on startup
-- **Graceful Fallback**: Falls back to MCP-only mode if CLI is unavailable
-- **Version Compatibility**: Validates CLI version compatibility
-- **Performance Optimization**: Caches CLI command results for better performance
-
-**CLI Installation** (optional but recommended):
 ```bash
-# Install globally for enhanced functionality
-npm install -g @nodash/cli
-
-# Verify installation
-nodash --version
+npm run dev
 ```
 
-## 🤝 Integration with Local Agents
+### Testing
 
-This MCP server is designed to work perfectly with local coding agents:
+The MCP server is tested as part of the overall nodash integration tests.
 
-- **MCP Server Role**: Provides analysis, guidance, and recommendations
-- **Local Agent Role**: Implements the actual code changes with full project context
-- **Perfect Partnership**: MCP analyzes and suggests, agent implements with precision
+## Configuration
 
-## 🐛 Troubleshooting
+The MCP server requires no configuration - it automatically discovers and exposes nodash capabilities.
 
-### Common Issues
+For CLI command execution, it assumes the `nodash` CLI is available globally. Install it with:
 
-**MCP server not starting**
-- Ensure Node.js ≥ 18.0.0 is installed
-- Check that the MCP client configuration is correct
-- Try running `npx @nodash/mcp-server@latest` directly
+```bash
+npm install -g @nodash/cli
+```
 
-**Project analysis failing**
-- Ensure you're running from a directory with a `package.json`
-- Check file permissions for the project directory
-- Verify the project structure is accessible
+## Troubleshooting
 
-**Examples not loading**
-- Check that the examples directory exists relative to the MCP server
-- Ensure file permissions allow reading example files
-- Try accessing examples through the resources
+**Q: MCP server not starting**
+A: Check that all dependencies are installed and the server has proper permissions.
 
-### 🆕 CLI Integration Issues
+**Q: CLI commands failing**
+A: Ensure `@nodash/cli` is installed globally and properly configured.
 
-**CLI not detected**
-- Install the CLI: `npm install -g @nodash/cli`
-- Verify installation: `nodash --version`
-- Check PATH configuration
-- Server will fall back to MCP-only mode automatically
+**Q: Documentation not loading**
+A: Documentation is embedded statically, so this shouldn't happen. Check the server logs.
 
-**CLI commands failing**
-- Check API token configuration: Use `execute_cli_command` with `config list`
-- Verify network connectivity: Use `execute_cli_command` with `health`
-- Review command syntax and permissions
-- Commands default to dry-run mode for safety
+**Q: Tools not appearing in MCP client**
+A: Verify your MCP client configuration and that the server is running.
 
-**Workflow execution issues**
-- Use `troubleshoot_issues` tool for automated diagnostics
-- Check individual command execution first
-- Verify project structure and permissions
-- Review workflow logs for specific failure points
+## Integration Examples
 
-**Security validation errors**
-- Commands are automatically sanitized for security
-- Destructive operations require explicit confirmation
-- Use dry-run mode to test commands safely
-- Review security policy for allowed commands and arguments
+### Kiro IDE Configuration
 
-### Getting Help
+```json
+{
+  "mcpServers": {
+    "nodash": {
+      "command": "nodash-mcp",
+      "args": [],
+      "env": {}
+    }
+  }
+}
+```
 
-1. Use the `readme` tool for comprehensive usage instructions
-2. Use the `troubleshoot_issues` tool for automated CLI diagnostics
-3. Check the troubleshooting prompts for specific issues
-4. Review the error messages - they include helpful suggestions and code examples
-5. 🆕 Use `validate_implementation` for comprehensive setup validation
+### Custom MCP Client
 
-## 📄 License
+```typescript
+import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 
-MIT License - see [LICENSE](../../LICENSE) for details.
+const client = new Client({
+  name: "my-agent",
+  version: "1.0.0"
+});
 
-## 🔗 Related Packages
+// Connect to nodash MCP server
+await client.connect(transport);
 
-- **[@nodash/sdk](../nodash-sdk)** - Client SDK for analytics tracking
-- **[Examples](../../examples)** - Working integration examples for all frameworks
+// List available tools
+const tools = await client.listTools();
+console.log('Available tools:', tools.tools.map(t => t.name));
+
+// Use setup tool
+const result = await client.callTool({
+  name: 'setup_project',
+  arguments: {
+    baseUrl: 'https://api.example.com'
+  }
+});
+```
+
+## What Makes This Special
+
+### Self-Contained
+Documentation is embedded, so the package works independently without external file dependencies.
+
+### Agent-First Design
+Every tool and response is designed with AI agents in mind - structured data, clear schemas, helpful descriptions.
+
+### Dynamic Capabilities
+As the CLI and SDK evolve, the MCP server automatically reflects those changes through its documentation consumption.
+
+### Minimal Complexity
+Following the nodash principle of "simple, tight, less code is better."
+
+## License
+
+MIT - Because AI agents deserve freedom too.
 
 ---
 
-**Built for developers, by developers** 🚀
-
-Ready to add analytics to your project? Start with: *"Analyze my project and help me integrate Nodash analytics"* 
+*Built with ❤️ and a deep understanding of what AI agents actually need by the Nodash team*

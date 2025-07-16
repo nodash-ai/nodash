@@ -1,654 +1,257 @@
-# @nodash/sdk
+# @nodash/sdk 🚀
 
-Industry-standard analytics SDK for event tracking with support for user identification, 
-page views, groups, sessions, and more.
+> The foundation layer that doesn't judge your life choices (but tracks them anyway)
 
-## Quick Start
+Welcome to the Nodash SDK! Whether you're a human developer who drinks too much coffee or an AI agent who processes data at inhuman speeds, this SDK is designed for you. We promise it's simpler than your last relationship and more reliable than your internet connection.
 
-```bash
-npm install @nodash/sdk
-```
-
-```typescript
-import { nodash } from '@nodash/sdk';
-
-// Initialize (uses https://api.nodash.ai by default)
-nodash.init('your-project-token', {
-  debug: true
-});
-
-// Or override for local development
-nodash.init('your-project-token', {
-  apiUrl: 'http://localhost:3001',
-  debug: true
-});
-
-// Track events
-nodash.track('Button Click', { button: 'signup' });
-
-// Identify users
-nodash.identify('user-123', { name: 'John Doe', email: 'john@example.com' });
-```
-
-## Installation
-
-### NPM/Yarn
+## Quick Start (Because Nobody Reads Documentation Anyway)
 
 ```bash
 npm install @nodash/sdk
-# or
-yarn add @nodash/sdk
 ```
-
-### CDN
-
-```html
-<script src="https://unpkg.com/@nodash/sdk@latest/dist/index.js"></script>
-<script>
-  // Uses https://api.nodash.ai by default
-  nodash.init('your-project-token');
-  
-  // Or override for local development
-  // nodash.init('your-project-token', { apiUrl: 'http://localhost:3001' });
-</script>
-```
-
-## Initialization
-
-Initialize the SDK with your project token and configuration:
 
 ```typescript
-import { nodash } from '@nodash/sdk';
-
-// Uses https://api.nodash.ai by default
-nodash.init('your-project-token', {
-  debug: true,
-  batchSize: 20,
-  flushInterval: 10000
-});
-
-// Override for local development
-nodash.init('your-project-token', {
-  apiUrl: 'http://localhost:3001',
-  debug: true,
-  batchSize: 20,
-  flushInterval: 10000
-});
-```
-
-### Configuration Options
-
-| Option | Type | Default | Description |
-|--------|------|---------|-------------|
-| `apiUrl` | string | `https://api.nodash.ai` | Analytics server endpoint |
-| `token` | string | - | Project authentication token |
-| `debug` | boolean | false | Enable debug logging |
-| `batchSize` | number | 10 | Events per batch |
-| `flushInterval` | number | 10000 | Auto-flush interval (ms) |
-| `maxRetries` | number | 3 | Max retry attempts |
-| `disablePageViews` | boolean | false | Disable auto page tracking |
-| `disableSessions` | boolean | false | Disable session tracking |
-| `persistence` | string | 'localStorage' | Storage method |
-| `cookieDomain` | string | - | Cookie domain |
-| `cookieExpiration` | number | 365 | Cookie expiration (days) |
-
-## Core Methods
-
-### track(eventName, properties)
-
-Track custom events with optional properties.
-
-```typescript
-// Simple event
-nodash.track('Page View');
-
-// Event with properties
-nodash.track('Purchase', {
-  product: 'Pro Plan',
-  amount: 99.99,
-  currency: 'USD',
-  category: 'subscription'
-});
-
-// E-commerce tracking
-nodash.track('Product Added', {
-  product_id: 'abc-123',
-  product_name: 'Wireless Headphones',
-  category: 'Electronics',
-  price: 199.99,
-  quantity: 1
-});
-```
-
-**Parameters:**
-- `eventName` (string): Name of the event
-- `properties` (object, optional): Event properties
-
-### identify(userId, traits)
-
-Identify users and set user properties.
-
-```typescript
-// Basic identification
-nodash.identify('user-123');
-
-// With user traits
-nodash.identify('user-123', {
-  name: 'John Doe',
-  email: 'john@example.com',
-  plan: 'pro',
-  company: 'Acme Corp',
-  created_at: '2023-01-15T10:30:00Z'
-});
-
-// Update user traits
-nodash.identify('user-123', {
-  last_login: new Date().toISOString(),
-  feature_flags: ['beta_ui', 'advanced_analytics']
-});
-```
-
-**Parameters:**
-- `userId` (string): Unique user identifier
-- `traits` (object, optional): User properties
-
-### page(name, category, properties)
-
-Track page views with optional categorization.
-
-```typescript
-// Auto-detect current page
-nodash.page();
-
-// Named page
-nodash.page('Home');
-
-// Page with category
-nodash.page('Product Details', 'E-commerce');
-
-// Page with full context
-nodash.page('Checkout', 'E-commerce', {
-  product_count: 3,
-  cart_value: 299.97,
-  step: 'payment'
-});
-```
-
-**Parameters:**
-- `name` (string, optional): Page name
-- `category` (string, optional): Page category
-- `properties` (object, optional): Page properties
-
-### group(groupId, traits)
-
-Associate users with groups (companies, teams, etc.).
-
-```typescript
-// Basic group association
-nodash.group('company-123');
-
-// With group traits
-nodash.group('company-123', {
-  name: 'Acme Corp',
-  plan: 'enterprise',
-  employees: 500,
-  industry: 'Technology',
-  mrr: 50000
-});
-```
-
-**Parameters:**
-- `groupId` (string): Unique group identifier
-- `traits` (object, optional): Group properties
-
-### alias(userId, previousId)
-
-Link user identities together.
-
-```typescript
-// Link anonymous user to identified user
-nodash.alias('user-123', 'anonymous-456');
-
-// Link old user ID to new user ID
-nodash.alias('new-user-id', 'old-user-id');
-```
-
-**Parameters:**
-- `userId` (string): New user identifier
-- `previousId` (string): Previous user identifier
-
-### reset()
-
-Reset user state (call on logout).
-
-```typescript
-// Clear user data on logout
-nodash.reset();
-```
-
-### flush()
-
-Manually flush queued events.
-
-```typescript
-// Force immediate send
-await nodash.flush();
-```
-
-## Advanced Usage
-
-### User Information
-
-Get current user state:
-
-```typescript
-const user = nodash.user();
-console.log(user.userId);      // Current user ID
-console.log(user.traits);     // User traits
-console.log(user.anonymousId); // Anonymous ID
-```
-
-### Group Information
-
-Get current group state:
-
-```typescript
-const group = nodash.getGroup();
-console.log(group.groupId);    // Current group ID
-console.log(group.traits);     // Group traits
-```
-
-### Session Information
-
-Get current session data:
-
-```typescript
-const session = nodash.session();
-console.log(session.sessionId);   // Session ID
-console.log(session.startTime);   // Session start timestamp
-console.log(session.duration);    // Session duration (ms)
-```
-
-## Framework Integration
-
-### React
-
-```typescript
-import { useEffect } from 'react';
-import { nodash } from '@nodash/sdk';
-
-function App() {
-  useEffect(() => {
-    nodash.init('your-token', {
-      apiUrl: 'http://localhost:3001'
-    });
-  }, []);
-
-  const handleSignup = (user) => {
-    nodash.identify(user.id, {
-      name: user.name,
-      email: user.email
-    });
-    nodash.track('User Signed Up', {
-      plan: user.plan
-    });
-  };
-
-  return <div>Your App</div>;
-}
-```
-
-### Vue.js
-
-```typescript
-import { createApp } from 'vue';
-import { nodash } from '@nodash/sdk';
-
-const app = createApp({
-  mounted() {
-    nodash.init('your-token', {
-      apiUrl: 'http://localhost:3001'
-    });
-  },
-  methods: {
-    trackPurchase(product) {
-      nodash.track('Purchase', {
-        product_id: product.id,
-        amount: product.price
-      });
-    }
-  }
-});
-```
-
-### Express.js (Server-side)
-
-```typescript
-import express from 'express';
 import { NodashSDK } from '@nodash/sdk';
 
-const app = express();
-const analytics = new NodashSDK();
+// Initialize with your server (yes, you need a server - shocking, we know)
+const nodash = new NodashSDK('https://your-server.com', 'your-optional-token');
 
-analytics.init('your-token', {
-  apiUrl: 'http://localhost:3001'
+// Track events (like your questionable 3 AM coding decisions)
+await nodash.track('user_signed_up', { 
+  plan: 'premium',
+  source: 'desperation' 
 });
 
-app.post('/api/signup', (req, res) => {
-  const { userId, email, name } = req.body;
-  
-  analytics.identify(userId, { email, name });
-  analytics.track('User Signed Up', {
-    source: 'api',
-    plan: 'free'
-  });
-  
-  res.json({ success: true });
+// Identify users (we won't tell anyone who you really are)
+await nodash.identify('user-123', {
+  name: 'Anonymous Developer',
+  coffee_cups_today: 7
+});
+
+// Check if your server is still alive
+const health = await nodash.health();
+console.log('Server status:', health.status); // hopefully 'healthy'
+```
+
+## For Our AI Agent Friends 🤖
+
+Hey there, silicon-based life forms! This SDK is designed with you in mind. Here's what you need to know:
+
+- **Simple API**: Only 3 methods to remember (your neural networks will thank us)
+- **Clear errors**: When things break, we tell you exactly what went wrong
+- **No surprises**: We don't do magic, just HTTP requests with style
+
+### Agent-Friendly Examples
+
+```typescript
+// Perfect for tracking user interactions in your applications
+const sdk = new NodashSDK(process.env.NODASH_URL!, process.env.NODASH_TOKEN);
+
+// Track events with structured data
+await sdk.track('ai_interaction', {
+  model: 'gpt-4',
+  tokens_used: 1337,
+  user_satisfaction: 'probably_good'
 });
 ```
 
-## Event Specification
+## API Reference (The Boring But Important Stuff)
 
-### Standard Events
-
-#### E-commerce
+### Constructor
 
 ```typescript
-// Product viewed
-nodash.track('Product Viewed', {
-  product_id: 'abc-123',
-  product_name: 'Wireless Headphones',
-  category: 'Electronics',
-  price: 199.99,
-  currency: 'USD'
-});
-
-// Product added to cart
-nodash.track('Product Added', {
-  product_id: 'abc-123',
-  product_name: 'Wireless Headphones',
-  category: 'Electronics',
-  price: 199.99,
-  quantity: 1,
-  cart_id: 'cart-456'
-});
-
-// Purchase completed
-nodash.track('Order Completed', {
-  order_id: 'order-789',
-  total: 299.97,
-  currency: 'USD',
-  products: [
-    {
-      product_id: 'abc-123',
-      product_name: 'Wireless Headphones',
-      price: 199.99,
-      quantity: 1
-    }
-  ]
-});
+new NodashSDK(baseUrl: string, apiToken?: string)
 ```
 
-#### User Lifecycle
+**Parameters:**
+- `baseUrl` (required): Your server URL. Must be a valid URL or we'll throw a tantrum.
+- `apiToken` (optional): Authentication token. Some servers need it, some don't. Life is complicated.
 
+**Example:**
 ```typescript
-// User registration
-nodash.track('User Registered', {
-  method: 'email',
-  plan: 'free'
-});
+// With token (for the security-conscious)
+const sdk = new NodashSDK('https://api.yourserver.com', 'sk-your-secret-token');
 
-// User login
-nodash.track('User Logged In', {
-  method: 'password'
-});
-
-// Feature usage
-nodash.track('Feature Used', {
-  feature_name: 'export_data',
-  feature_category: 'productivity'
-});
+// Without token (living dangerously)
+const sdk = new NodashSDK('https://your-local-server.com');
 ```
 
-### Property Naming
+### track(event, properties?)
 
-Follow these conventions for consistent data:
-
-- Use snake_case for property names
-- Use descriptive, clear names
-- Include units for numeric values
-- Use ISO 8601 for timestamps
-- Use consistent categories
+Track events that happen in your application. Like a diary, but for code.
 
 ```typescript
-// Good
-nodash.track('Video Played', {
-  video_id: 'vid-123',
-  video_title: 'Getting Started',
-  video_duration_seconds: 180,
-  video_category: 'tutorial',
-  playback_position_seconds: 45
-});
-
-// Avoid
-nodash.track('videoPlayed', {
-  id: 'vid-123',
-  title: 'Getting Started',
-  duration: 180, // unclear units
-  pos: 45
-});
+await sdk.track(event: string, properties?: Record<string, any>): Promise<void>
 ```
 
-## Privacy & Compliance
+**Parameters:**
+- `event`: What happened (be creative, but not too creative)
+- `properties`: Additional data (optional, like your social life)
 
-### Opt-out Tracking
-
+**Examples:**
 ```typescript
-// Check if user has opted out
-if (userHasOptedOut) {
-  // Don't initialize or use a no-op version
-  return;
-}
+// Simple event
+await sdk.track('button_clicked');
 
-nodash.init('your-token', config);
-```
-
-### Data Minimization
-
-Only track necessary data:
-
-```typescript
-// Good - minimal, purposeful data
-nodash.track('Feature Used', {
-  feature_name: 'export',
-  user_plan: 'pro'
-});
-
-// Avoid - excessive personal data
-nodash.track('Feature Used', {
-  feature_name: 'export',
-  user_email: 'user@example.com', // unnecessary
-  user_ip: '192.168.1.1',         // sensitive
-  user_full_name: 'John Doe'      // unnecessary
-});
-```
-
-### GDPR Compliance
-
-```typescript
-// Allow users to request data deletion
-function handleDataDeletion(userId) {
-  // Call your backend to delete user data
-  await deleteUserData(userId);
-  
-  // Reset local tracking
-  nodash.reset();
-}
-```
-
-## Debugging
-
-### Debug Mode
-
-Enable debug logging to see what's being tracked:
-
-```typescript
-nodash.init('your-token', {
-  apiUrl: 'http://localhost:3001',
-  debug: true  // Enable debug logs
-});
-
-// Console will show:
-// [Nodash] SDK initialized
-// [Nodash] Event tracked: { event: "Button Click", ... }
-// [Nodash] User identified: { userId: "user-123", ... }
-```
-
-### Testing Events
-
-Use browser developer tools to inspect network requests:
-
-1. Open DevTools → Network tab
-2. Filter by "batch" or your API URL
-3. Trigger events in your app
-4. Inspect the request payload
-
-### Common Issues
-
-**Events not sending:**
-- Check network connectivity
-- Verify API URL is correct
-- Check console for error messages
-- Ensure `init()` was called
-
-**User identification not working:**
-- Call `identify()` after `init()`
-- Check that user ID is a string
-- Verify user traits format
-
-**Page views not tracking:**
-- Check if `disablePageViews: true` is set
-- Ensure running in browser environment
-- Verify page navigation triggers
-
-## TypeScript Support
-
-Full TypeScript support with proper types:
-
-```typescript
-import { nodash, EventProperties, UserTraits } from '@nodash/sdk';
-
-interface CustomEventProperties extends EventProperties {
-  product_id: string;
-  amount: number;
-  currency: string;
-}
-
-interface CustomUserTraits extends UserTraits {
-  name: string;
-  email: string;
-  plan: 'free' | 'pro' | 'enterprise';
-}
-
-// Type-safe tracking
-nodash.track('Purchase', {
-  product_id: 'abc-123',
+// Event with context
+await sdk.track('purchase_completed', {
   amount: 99.99,
-  currency: 'USD'
-} as CustomEventProperties);
-
-// Type-safe identification
-nodash.identify('user-123', {
-  name: 'John Doe',
-  email: 'john@example.com',
-  plan: 'pro'
-} as CustomUserTraits);
-```
-
-## Performance
-
-### Batching
-
-Events are automatically batched for efficiency:
-
-```typescript
-// These events will be batched together
-nodash.track('Event 1');
-nodash.track('Event 2');
-nodash.track('Event 3');
-// Batch sent when batchSize reached or flushInterval elapsed
-```
-
-### Memory Usage
-
-The SDK maintains minimal memory footprint:
-
-- Events are queued temporarily before sending
-- Failed events are retried with exponential backoff
-- Old events are discarded after max retries
-- User state is persisted to localStorage
-
-### Network Optimization
-
-- Automatic retry with exponential backoff
-- Gzip compression support
-- Minimal payload size
-- Configurable batch sizes
-
-## Migration Guide
-
-### From Google Analytics
-
-```typescript
-// GA4
-gtag('event', 'purchase', {
-  transaction_id: '12345',
-  value: 25.42,
-  currency: 'USD'
-});
-
-// Nodash equivalent
-nodash.track('Purchase', {
-  order_id: '12345',
-  total: 25.42,
-  currency: 'USD'
+  currency: 'USD',
+  items: ['coffee', 'more_coffee', 'emergency_coffee']
 });
 ```
 
-### From Mixpanel
+### identify(userId, traits?)
+
+Tell us who your users are. We promise not to sell their data to aliens.
 
 ```typescript
-// Mixpanel
-mixpanel.track('Page View', { page: 'home' });
-mixpanel.identify('user-123');
-mixpanel.people.set({ name: 'John' });
-
-// Nodash equivalent
-nodash.page('Home');
-nodash.identify('user-123', { name: 'John' });
+await sdk.identify(userId: string, traits?: Record<string, any>): Promise<void>
 ```
 
-### From Segment
+**Parameters:**
+- `userId`: Unique identifier for the user
+- `traits`: User attributes (optional)
+
+**Examples:**
+```typescript
+// Basic identification
+await sdk.identify('user-123');
+
+// With user traits
+await sdk.identify('user-456', {
+  email: 'developer@example.com',
+  plan: 'pro',
+  bugs_created_today: 3
+});
+```
+
+### health()
+
+Check if your server is still breathing.
 
 ```typescript
-// Segment
-analytics.track('Button Clicked', { button: 'signup' });
-analytics.identify('user-123', { email: 'john@example.com' });
-analytics.page('Home');
-
-// Nodash equivalent (same API!)
-nodash.track('Button Clicked', { button: 'signup' });
-nodash.identify('user-123', { email: 'john@example.com' });
-nodash.page('Home');
+await sdk.health(): Promise<HealthStatus>
 ```
 
-## Support
+**Returns:**
+```typescript
+interface HealthStatus {
+  status: 'healthy' | 'degraded' | 'unhealthy';
+  version: string;
+  uptime: number;
+  checks: HealthCheck[];
+}
+```
 
-- **Documentation**: Full API reference and guides
-- **GitHub**: Report issues and contribute
-- **Community**: Join our developer community
-- **Enterprise**: Contact for enterprise support
+**Example:**
+```typescript
+const health = await sdk.health();
+if (health.status === 'healthy') {
+  console.log('All systems go! 🚀');
+} else {
+  console.log('Houston, we have a problem... 🚨');
+}
+```
+
+## Building Your Own Server (For the Brave Souls)
+
+Want to implement your own Nodash-compatible server? You're either very brave or very foolish. Either way, we respect that.
+
+Your server needs to implement these endpoints:
+
+### POST /track
+Accept tracking events:
+```json
+{
+  "event": "user_action",
+  "properties": { "key": "value" },
+  "timestamp": "2024-01-01T00:00:00.000Z"
+}
+```
+
+### POST /identify
+Accept user identification:
+```json
+{
+  "userId": "user-123",
+  "traits": { "name": "John Doe" },
+  "timestamp": "2024-01-01T00:00:00.000Z"
+}
+```
+
+### GET /health
+Return server status:
+```json
+{
+  "status": "healthy",
+  "version": "1.0.0",
+  "uptime": 3600,
+  "checks": [
+    { "name": "database", "status": "pass" },
+    { "name": "redis", "status": "pass" }
+  ]
+}
+```
+
+## Error Handling (When Things Go Wrong)
+
+We believe in clear, helpful error messages. No cryptic codes or mysterious failures here.
+
+```typescript
+try {
+  await sdk.track('', {}); // Empty event name
+} catch (error) {
+  console.log(error.message); // "event name is required and must be a string"
+}
+
+try {
+  const sdk = new NodashSDK('not-a-url');
+} catch (error) {
+  console.log(error.message); // "baseUrl must be a valid URL"
+}
+```
+
+## Common Patterns
+
+### Environment-based Configuration
+```typescript
+const sdk = new NodashSDK(
+  process.env.NODE_ENV === 'production' 
+    ? 'https://api.nodash.com'
+    : 'http://localhost:3000',
+  process.env.NODASH_TOKEN
+);
+```
+
+### Batch Operations (Coming Soon™)
+Currently, each method makes individual requests. If you need batching, implement it in your server or wait for v0.2.0 (no promises on timing).
+
+## Troubleshooting
+
+**Q: My requests are failing with 401 errors**
+A: Check your API token. If you don't have one, maybe your server doesn't need it? Life is mysterious.
+
+**Q: The SDK is throwing "baseUrl must be a valid URL" errors**
+A: Your URL is probably invalid. Try adding `http://` or `https://` at the beginning. We're not mind readers.
+
+**Q: Nothing is happening when I call track()**
+A: Check your server logs. The SDK is probably working fine; your server might be having an existential crisis.
+
+**Q: Can I use this with my custom server?**
+A: Absolutely! As long as your server speaks HTTP and implements the expected endpoints, we're friends.
+
+## Contributing
+
+Found a bug? Want to add a feature? Great! Just remember:
+- Keep it simple (complexity is the enemy)
+- Write tests (future you will thank present you)
+- Update documentation (yes, even the jokes)
 
 ## License
 
-MIT License - see LICENSE file for details. 
+MIT - Because sharing is caring, and lawyers are expensive.
+
+---
+
+*Built with ❤️ and excessive amounts of caffeine by the Nodash team*

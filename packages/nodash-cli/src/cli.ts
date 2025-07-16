@@ -1,104 +1,143 @@
 #!/usr/bin/env node
 
 import { Command } from 'commander';
-import chalk from 'chalk';
-import { createAnalyzeCommand } from './commands/analyze.js';
-import { createConfigCommand } from './commands/config.js';
-import { createTrackCommand } from './commands/track.js';
-import { createMetricCommand } from './commands/metric.js';
-import { createHealthCommand } from './commands/health.js';
-import { CLIErrorHandler } from './utils/error-handler.js';
+import { ConfigManager } from './config';
+import { SDKWrapper } from './sdk-wrapper';
 
-async function main() {
-  const program = new Command();
-  
-  program
-    .name('nodash')
-    .description('Nodash CLI for analytics and monitoring operations')
-    .version('1.0.1');
+const program = new Command();
+const configManager = new ConfigManager();
+const sdkWrapper = new SDKWrapper();
 
-  // Global options
-  program
-    .option('--no-color', 'Disable colored output')
-    .option('--verbose', 'Enable verbose logging')
-    .option('--format <format>', 'Output format (json, table)', 'table');
+program
+  .name('nodash')
+  .description('Nodash CLI - Developer tools for the nodash ecosystem')
+  .version('0.1.0');
 
-  // Add commands
-  program.addCommand(createAnalyzeCommand());
-  program.addCommand(createConfigCommand());
-  program.addCommand(createTrackCommand());
-  program.addCommand(createMetricCommand());
-  program.addCommand(createHealthCommand());
-
-  // Handle global options
-  program.hook('preAction', (thisCommand) => {
-    const opts = thisCommand.opts();
-    
-    // Disable colors if requested
-    if (opts.noColor) {
-      chalk.level = 0;
-    }
-    
-    // Set verbose mode
-    if (opts.verbose) {
-      process.env.NODASH_VERBOSE = 'true';
+// Config command
+program
+  .command('config')
+  .description('Manage configuration')
+  .argument('<action>', 'Action to perform (get, set)')
+  .argument('[key]', 'Configuration key')
+  .argument('[value]', 'Configuration value')
+  .action(async (action: string, key?: string, value?: string) => {
+    try {
+      if (action === 'get') {
+        if (key) {
+          const configValue = configManager.getConfigValue(key as any);
+          if (configValue) {
+            console.log(`${key}: ${configValue}`);
+          } else {
+            console.log(`${key}: not set`);
+          }
+        } else {
+          const config = configManager.getConfig();
+          console.log('Current configuration:');
+          console.log(JSON.stringify(config, null, 2));
+        }
+      } else if (action === 'set') {
+        if (!key || !value) {
+          console.error('Usage: nodash config set <key> <value>');
+          process.exit(1);
+        }
+        configManager.setConfigValue(key as any, value);
+        console.log(`✅ Set ${key} = ${value}`);
+      } else {
+        console.error('Unknown action. Use "get" or "set"');
+        process.exit(1);
+      }
+    } catch (error) {
+      console.error('❌ Config error:', error instanceof Error ? error.message : error);
+      process.exit(1);
     }
   });
 
-  // Custom help
-  program.on('--help', () => {
-    console.log('');
-    console.log(chalk.bold.blue('Examples:'));
-    console.log('  $ nodash config set token your-api-token');
-    console.log('  $ nodash track signup --properties \'{"plan": "pro"}\'');
-    console.log('  $ nodash metric response_time 150 --unit ms');
-    console.log('  $ nodash health');
-    console.log('  $ nodash analyze --setup');
-    console.log('');
-    console.log(chalk.bold.blue('Getting Started:'));
-    console.log('  1. Set your API token: nodash config set token <token>');
-    console.log('  2. Test connectivity: nodash health');
-    console.log('  3. Analyze your project: nodash analyze');
-    console.log('');
-    console.log(chalk.gray('For more information, visit: https://docs.nodash.ai/cli'));
+// Track command
+program
+  .command('track')
+  .description('Track an event')
+  .argument('<event>', 'Event name')
+  .option('-p, --properties <json>', 'Event properties as JSON')
+  .action(async (event: string, options: { properties?: string }) => {
+    try {
+      let properties: Record<string, any> | undefined;
+      
+      if (options.properties) {
+        try {
+          properties = JSON.parse(options.properties);
+        } catch {
+          console.error('❌ Invalid JSON in properties');
+          process.exit(1);
+        }
+      }
+
+      await sdkWrapper.track(event, properties);
+      console.log(`✅ Tracked event: ${event}`);
+    } catch (error) {
+      console.error('❌ Track error:', error instanceof Error ? error.message : error);
+      process.exit(1);
+    }
   });
 
-  // Parse arguments
-  try {
-    await program.parseAsync(process.argv);
-  } catch (error) {
-    if (error instanceof Error) {
-      CLIErrorHandler.handle(error, 'cli');
-    } else {
-      console.error(chalk.red('❌ Unexpected error:'), error);
+// Health command
+program
+  .command('health')
+  .description('Check server health')
+  .action(async () => {
+    try {
+      const health = await sdkWrapper.health();
+      console.log('🏥 Server Health Status:');
+      console.log(`Status: ${health.status}`);
+      console.log(`Version: ${health.version}`);
+      console.log(`Uptime: ${health.uptime}s`);
+      
+      if (health.checks && health.checks.length > 0) {
+        console.log('\nHealth Checks:');
+        health.checks.forEach((check: any) => {
+          const icon = check.status === 'pass' ? '✅' : '❌';
+          console.log(`  ${icon} ${check.name}: ${check.status}`);
+          if (check.message) {
+            console.log(`     ${check.message}`);
+          }
+        });
+      }
+    } catch (error) {
+      console.error('❌ Health check failed:', error instanceof Error ? error.message : error);
+      process.exit(1);
     }
-    process.exit(1);
-  }
-}
+  });
 
-// Handle uncaught errors
-process.on('uncaughtException', (error) => {
-  console.error(chalk.red('❌ Uncaught Exception:'));
-  console.error(chalk.red(error.message));
-  if (process.env.NODASH_VERBOSE) {
-    console.error(chalk.gray(error.stack));
-  }
-  process.exit(1);
-});
+// Init command
+program
+  .command('init')
+  .description('Initialize nodash configuration')
+  .option('-u, --url <url>', 'Base URL for the nodash server')
+  .option('-t, --token <token>', 'API token (optional)')
+  .action(async (options: { url?: string; token?: string }) => {
+    try {
+      console.log('🚀 Initializing Nodash CLI...');
+      
+      if (options.url) {
+        configManager.setConfigValue('baseUrl', options.url);
+        console.log(`✅ Set base URL: ${options.url}`);
+      }
+      
+      if (options.token) {
+        configManager.setConfigValue('apiToken', options.token);
+        console.log('✅ Set API token');
+      }
+      
+      if (!options.url && !options.token) {
+        console.log('No configuration provided. Use --url and/or --token options.');
+        console.log('Example: nodash init --url https://api.nodash.com --token your-token');
+      }
+      
+      console.log('\n🎉 Nodash CLI is ready to use!');
+      console.log('Try: nodash health');
+    } catch (error) {
+      console.error('❌ Init error:', error instanceof Error ? error.message : error);
+      process.exit(1);
+    }
+  });
 
-process.on('unhandledRejection', (reason) => {
-  console.error(chalk.red('❌ Unhandled Promise Rejection:'));
-  console.error(chalk.red(reason instanceof Error ? reason.message : String(reason)));
-  if (process.env.NODASH_VERBOSE && reason instanceof Error) {
-    console.error(chalk.gray(reason.stack));
-  }
-  process.exit(1);
-});
-
-main().catch((error) => {
-  console.error(chalk.red('❌ CLI Error:'), error instanceof Error ? error.message : error);
-  if (process.env.NODASH_VERBOSE && error instanceof Error) {
-    console.error(chalk.gray(error.stack));
-  }
-  process.exit(1);
-}); 
+program.parse();

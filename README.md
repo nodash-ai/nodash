@@ -1,90 +1,29 @@
-# Nodash Analytics Platform
+# Nodash - Clean Restart 🚀
 
-**Zero-configuration analytics platform with intelligent AI integration**
+> SDK-first architecture that doesn't judge your life choices (but tracks them anyway)
 
-Nodash provides a comprehensive analytics solution that combines powerful data collection, intelligent insights, and seamless AI integration through the Model Context Protocol (MCP).
+Welcome to the clean, minimal, and delightfully simple Nodash ecosystem! This is a complete restart with a focus on simplicity, strong component boundaries, and code that actually makes sense.
 
-## 🏗️ Architecture Overview
+## Architecture Overview
 
-This repository follows a **selective open source model** inspired by BetterStack:
-
-### 🌟 Public Components (This Repository)
-- **SDK** (`@nodash/sdk`) - Client library for all analytics operations
-- **CLI** (`@nodash/cli`) - Command-line interface using the SDK
-- **MCP Server** (`@nodash/mcp-server`) - AI integration server using the SDK
-- **Framework Integrations** - React, Vue, Angular, Next.js examples
-- **Developer Tools** - Debugging and validation utilities
-
-### 🔒 Private Infrastructure
-- Analytics processing servers
-- Data pipelines and storage
-- AI/ML models and algorithms
-- Business intelligence features
-- Enterprise-specific functionality
-
-## 📦 Packages
-
-### Core SDK (`@nodash/sdk`)
-The main client library that provides:
-- **Event Tracking** - Custom events, page views, user identification
-- **Error Monitoring** - Automatic error reporting and context capture
-- **Performance Metrics** - Custom metrics and performance monitoring
-- **Business Intelligence** - Dashboard and report generation
-- **Health Monitoring** - Service status and health checks
-
-```typescript
-import { NodashSDK } from '@nodash/sdk';
-
-const nodash = new NodashSDK('your-token', {
-  baseUrl: 'https://api.nodash.ai'
-});
-
-// Track events
-await nodash.track('user_signup', { plan: 'pro' });
-
-// Identify users
-await nodash.identify('user-123', { email: 'user@example.com' });
-
-// Report errors
-await nodash.reportError(error, { context: 'checkout' });
-
-// Submit metrics
-await nodash.submitMetric('response_time', 150, 'ms');
+```
+┌─────────────────┐
+│   @nodash/sdk   │  ← Foundation layer (the star of the show)
+│   (Foundation)  │
+└─────────────────┘
+         ↑
+┌─────────────────┐
+│   @nodash/cli   │  ← Developer layer (uses SDK)
+│  (Developer)    │
+└─────────────────┘
+         ↑
+┌─────────────────┐
+│   @nodash/mcp   │  ← AI Agent layer (uses CLI + SDK)
+│  (AI Agents)    │
+└─────────────────┘
 ```
 
-### CLI Tool (`@nodash/cli`)
-Command-line interface built on the SDK:
-
-```bash
-# Install globally
-npm install -g @nodash/cli
-
-# Track events from command line
-nodash analytics track "deployment_completed" --properties '{"version": "1.2.3"}'
-
-# Identify users
-nodash analytics identify user-123 --traits '{"plan": "enterprise"}'
-
-# Health check
-nodash analytics health
-
-# Project analysis
-nodash analyze
-```
-
-### MCP Server (`@nodash/mcp-server`)
-AI integration server for Claude and other LLMs:
-
-```bash
-# Install and run
-npm install -g @nodash/mcp-server
-nodash-mcp-server
-
-# Use with Claude Desktop
-# Add to your MCP configuration
-```
-
-## 🚀 Quick Start
+## Quick Start (5 Minutes to Glory)
 
 ### 1. Install the SDK
 
@@ -92,151 +31,263 @@ nodash-mcp-server
 npm install @nodash/sdk
 ```
 
-### 2. Initialize in Your App
-
 ```typescript
 import { NodashSDK } from '@nodash/sdk';
 
-const nodash = new NodashSDK(process.env.NODASH_TOKEN);
+const nodash = new NodashSDK('https://your-server.com', 'optional-token');
 
-// Start tracking
-await nodash.track('app_started');
+// Track events
+await nodash.track('user_signed_up', { plan: 'premium' });
+
+// Identify users
+await nodash.identify('user-123', { name: 'John Doe' });
+
+// Check health
+const health = await nodash.health();
 ```
 
-### 3. Framework-Specific Setup
-
-#### React
-```tsx
-import { NodashSDK } from '@nodash/sdk';
-
-const nodash = new NodashSDK(process.env.REACT_APP_NODASH_TOKEN);
-
-function App() {
-  useEffect(() => {
-    nodash.page('Home');
-  }, []);
-  
-  return <div>Your app</div>;
-}
-```
-
-#### Vue
-```vue
-<script setup>
-import { NodashSDK } from '@nodash/sdk';
-
-const nodash = new NodashSDK(process.env.VUE_APP_NODASH_TOKEN);
-
-onMounted(() => {
-  nodash.page('Home');
-});
-</script>
-```
-
-#### Next.js
-```typescript
-// pages/_app.tsx
-import { NodashSDK } from '@nodash/sdk';
-
-const nodash = new NodashSDK(process.env.NEXT_PUBLIC_NODASH_TOKEN);
-
-export default function App({ Component, pageProps }) {
-  useEffect(() => {
-    nodash.page(router.pathname);
-  }, [router.pathname]);
-  
-  return <Component {...pageProps} />;
-}
-```
-
-## 🔧 Development
-
-### Project Structure
-```
-nodash/
-├── packages/
-│   ├── nodash-sdk/           # Core SDK (uses shared interfaces)
-│   ├── nodash-cli/           # CLI tool (uses SDK)
-│   ├── nodash-mcp-server/    # MCP server (uses SDK)
-│   └── nodash-analytics-server/ # Server interfaces
-├── examples/                 # Framework examples
-│   ├── react/
-│   ├── vue/
-│   ├── angular/
-│   ├── nextjs/
-│   ├── express/
-│   └── vanilla-js/
-├── tools/                    # Developer utilities
-└── docs/                     # Documentation
-```
-
-### Architecture Principles
-
-1. **SDK-First Design**: All components use the core SDK
-2. **Shared Interfaces**: Common API contracts between SDK and servers
-3. **Type Safety**: Full TypeScript support throughout
-4. **Framework Agnostic**: Works with any JavaScript framework
-5. **AI Integration**: Built-in MCP support for LLM interactions
-
-### Building from Source
+### 2. Use the CLI for Development
 
 ```bash
-# Install dependencies
-npm install
+npm install -g @nodash/cli
 
-# Build all packages
-npm run build
+# Initialize
+nodash init --url https://your-server.com --token your-token
 
-# Run tests
-npm test
+# Track events from command line
+nodash track "deployment_completed" --properties '{"version": "1.0.0"}'
 
-# Start development mode
-npm run dev
+# Check server health
+nodash health
 ```
 
-## 📖 Documentation
+### 3. Set up MCP for AI Agents
 
-- [SDK Documentation](./packages/nodash-sdk/README.md)
-- [CLI Documentation](./packages/nodash-cli/README.md)
-- [MCP Server Documentation](./packages/nodash-mcp-server/README.md)
-- [Framework Guides](./docs/framework-guides.md)
-- [API Reference](./docs/api-reference.md)
+```bash
+npm install -g @nodash/mcp
 
-## 🤝 Contributing
+# Start MCP server
+nodash-mcp
+```
 
-We welcome contributions to the public components of Nodash! Please see our [Contributing Guide](./CONTRIBUTING.md) for details.
+Then configure in your MCP client:
+```json
+{
+  "mcpServers": {
+    "nodash": {
+      "command": "nodash-mcp"
+    }
+  }
+}
+```
 
-### What You Can Contribute To:
-- SDK improvements and bug fixes
-- CLI features and commands
-- MCP server enhancements
-- Framework integrations
-- Documentation and examples
-- Developer tools
+## Package Details
 
-### Development Workflow:
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests if applicable
-5. Submit a pull request
+### [@nodash/sdk](./packages/nodash-sdk/README.md) - The Foundation 🏗️
 
-## 📄 License
+The core client library that everything else builds on. Inspired by BetterStack and PostHog.
 
-This project is licensed under the MIT License - see the [LICENSE](./LICENSE) file for details.
+**Key Features:**
+- Minimal API surface (3 methods: track, identify, health)
+- Works with any compatible server
+- Optional authentication
+- Clear error messages
+- Built for both humans and AI agents
 
-## 🔗 Links
+### [@nodash/cli](./packages/nodash-cli/README.md) - Developer Tools 🛠️
 
-- [Website](https://nodash.ai)
-- [Documentation](https://docs.nodash.ai)
-- [Support](https://support.nodash.ai)
-- [Status Page](https://status.nodash.ai)
+Command-line interface for developers. Uses the SDK internally.
 
-## 🏢 About
+**Key Features:**
+- Simple commands: `init`, `config`, `track`, `health`
+- Configuration management
+- JSON property support
+- Agent-friendly output
+- Helpful error messages
 
-Nodash is built with a selective open source model:
-- **Client libraries and tools** are open source for community benefit
-- **Core infrastructure** remains private for competitive advantage
-- **AI integrations** are open source to drive adoption and innovation
+### [@nodash/mcp](./packages/nodash-mcp/) - AI Agent Interface 🤖
 
-This approach allows us to provide value to the developer community while maintaining a sustainable business model. 
+Model Context Protocol server for AI agents. Consumes CLI and SDK documentation automatically.
+
+**Key Features:**
+- Dynamic tool discovery
+- Automatic documentation consumption
+- Project setup optimization
+- CLI command execution
+- Self-updating capabilities
+
+## Complete Example: End-to-End Usage
+
+### 1. Server Setup (Your Custom Server)
+
+```typescript
+// server.js - Your custom nodash-compatible server
+const express = require('express');
+const app = express();
+
+app.use(express.json());
+
+app.post('/track', (req, res) => {
+  console.log('Event tracked:', req.body);
+  res.json({ success: true });
+});
+
+app.post('/identify', (req, res) => {
+  console.log('User identified:', req.body);
+  res.json({ success: true });
+});
+
+app.get('/health', (req, res) => {
+  res.json({
+    status: 'healthy',
+    version: '1.0.0',
+    uptime: process.uptime(),
+    checks: [
+      { name: 'server', status: 'pass' }
+    ]
+  });
+});
+
+app.listen(3000, () => {
+  console.log('Nodash server running on http://localhost:3000');
+});
+```
+
+### 2. SDK Usage
+
+```typescript
+// app.js - Your application
+import { NodashSDK } from '@nodash/sdk';
+
+const nodash = new NodashSDK('http://localhost:3000');
+
+// Track user actions
+await nodash.track('page_view', {
+  page: '/dashboard',
+  user_id: 'user-123'
+});
+
+// Identify users
+await nodash.identify('user-123', {
+  email: 'user@example.com',
+  plan: 'pro'
+});
+
+// Monitor health
+const health = await nodash.health();
+console.log('Server status:', health.status);
+```
+
+### 3. CLI Usage
+
+```bash
+# Set up CLI
+nodash init --url http://localhost:3000
+
+# Track events from scripts
+nodash track "script_executed" --properties '{"script": "backup.sh", "success": true}'
+
+# Monitor in CI/CD
+nodash track "deployment_started" --properties '{"version": "1.2.3", "environment": "production"}'
+```
+
+### 4. MCP Integration
+
+The MCP server automatically discovers CLI and SDK capabilities:
+
+```typescript
+// AI Agent can use these tools:
+// - setup_project: Configure nodash for optimal usage
+// - run_cli_command: Execute CLI commands
+// - get_documentation: Access latest docs and examples
+```
+
+## Design Principles
+
+### 1. SDK-First Architecture
+Everything builds on the SDK. The CLI uses the SDK, the MCP server uses both CLI and SDK.
+
+### 2. Minimal Code
+Less code = fewer bugs = happier developers. We prioritize simplicity over features.
+
+### 3. Strong Boundaries
+Each component has a clear, focused responsibility. No circular dependencies.
+
+### 4. Documentation-Driven
+The MCP server consumes documentation automatically. When docs change, capabilities update.
+
+### 5. Agent-Friendly
+Built with AI agents in mind. Clear interfaces, structured data, helpful examples.
+
+## Development
+
+### Building All Packages
+
+```bash
+npm install
+npm run build
+```
+
+### Testing
+
+```bash
+# Run integration tests
+node test-integration.js
+
+# Test documentation sync
+node test-mcp-docs.js
+```
+
+### Project Structure
+
+```
+packages/
+├── nodash-sdk/          # Core SDK
+│   ├── src/
+│   │   ├── sdk.ts       # Main SDK class
+│   │   ├── http-client.ts
+│   │   └── types.ts
+│   └── README.md        # Humorous, agent-friendly docs
+├── nodash-cli/          # CLI tool
+│   ├── src/
+│   │   ├── cli.ts       # Main CLI entry
+│   │   ├── config.ts    # Configuration management
+│   │   └── sdk-wrapper.ts
+│   └── README.md        # Developer and agent docs
+└── nodash-mcp/          # MCP server
+    ├── src/
+    │   ├── server.ts    # MCP server implementation
+    │   ├── documentation-reader.ts
+    │   └── types.ts
+    └── README.md        # Agent integration docs
+```
+
+## Why This Architecture?
+
+### Before (Complex)
+- Circular dependencies
+- Overlapping concerns  
+- Hard to maintain
+- Confusing for contributors
+
+### After (Clean)
+- Clear hierarchy: SDK → CLI → MCP
+- Single responsibility per component
+- Easy to understand and extend
+- Agent-friendly by design
+
+## Contributing
+
+1. Keep it simple (complexity is the enemy)
+2. Write minimal code (less is more)
+3. Update documentation (agents need to understand too)
+4. Test your changes (use the integration tests)
+5. Follow the architecture (SDK first, always)
+
+## License
+
+MIT - Because sharing is caring, and lawyers are expensive.
+
+---
+
+*Built with ❤️, excessive caffeine, and a commitment to simplicity by the Nodash team*

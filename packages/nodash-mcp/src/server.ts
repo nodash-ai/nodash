@@ -1,204 +1,305 @@
 #!/usr/bin/env node
+
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
+import {
+  CallToolRequestSchema,
+  ListToolsRequestSchema,
+  ListResourcesRequestSchema,
+  ReadResourceRequestSchema,
+} from '@modelcontextprotocol/sdk/types.js';
+import { ProjectConfig, SetupResult, CommandResult, Documentation } from './types.js';
+import { SDK_DOCUMENTATION, CLI_DOCUMENTATION, extractExamples } from './bundled-docs.js';
+import { spawn } from 'child_process';
 
-// Import handlers
-import { setupToolHandlers } from './handlers/tools.js';
-import { setupPromptHandlers } from './handlers/prompts.js';
-import { setupResourceHandlers } from './handlers/resources.js';
-import { EnhancedToolsHandler } from './handlers/enhanced-tools.js';
+class NodashMCPServer {
+  private server: Server;
 
-// Import services
-import { ProjectAnalysisService } from './services/project-analysis.js';
-import { AdvancedAnalysisService } from './services/advanced-analysis.js';
-import { ImplementationGuideService } from './services/code-generator.js';
-import { PromptsService } from './services/prompts.js';
-import { DocumentationService } from './services/documentation.js';
+  constructor() {
+    this.server = new Server(
+      {
+        name: 'nodash-mcp',
+        version: '0.1.0',
+      }
+    );
 
-// Import CLI integration services
-import { CLIExecutor } from './services/cli-executor.js';
-import { EnhancedMCPIntegration } from './services/enhanced-mcp-integration.js';
-import { EnvironmentManager, quickEnvironmentCheck } from './services/environment-manager.js';
-import { CommandCache, PerformanceMonitor } from './services/performance-manager.js';
-import { MonitoringService } from './services/monitoring-service.js';
-import { createErrorRecovery } from './utils/errors.js';
-
-// Create server instance
-const server = new Server(
-  {
-    name: 'nodash-mcp-server',
-    version: '1.0.0',
-  },
-  {
-    capabilities: {
-      tools: {},
-      prompts: {},
-      resources: {}
-    },
+    this.setupHandlers();
   }
-);
 
-// Initialize core services
-const projectService = new ProjectAnalysisService();
-const advancedAnalysisService = new AdvancedAnalysisService();
-const implementationGuideService = new ImplementationGuideService();
-const promptsService = new PromptsService();
-const documentationService = new DocumentationService();
+  private getSDKDocumentation(): Documentation {
+    const examples = extractExamples(SDK_DOCUMENTATION);
 
-// Initialize monitoring service first
-const monitoringService = new MonitoringService();
+    return {
+      component: 'sdk',
+      content: SDK_DOCUMENTATION,
+      examples,
+      lastUpdated: new Date()
+    };
+  }
 
-// Initialize CLI integration services with monitoring
-const environmentManager = new EnvironmentManager();
-const cliExecutor = new CLIExecutor(undefined, monitoringService);
-const commandCache = new CommandCache();
-const performanceMonitor = new PerformanceMonitor();
-const errorRecovery = createErrorRecovery();
+  private getCLIDocumentation(): Documentation {
+    const examples = extractExamples(CLI_DOCUMENTATION);
 
-// Initialize enhanced integration
-const enhancedIntegration = new EnhancedMCPIntegration(
-  projectService,
-  advancedAnalysisService,
-  implementationGuideService
-);
+    return {
+      component: 'cli',
+      content: CLI_DOCUMENTATION,
+      examples,
+      lastUpdated: new Date()
+    };
+  }
 
-// Initialize enhanced tools handler with CLI integration
-const enhancedToolsHandler = new EnhancedToolsHandler(
-  projectService,
-  advancedAnalysisService,
-  implementationGuideService
-);
+  private setupHandlers() {
+    // List available tools
+    this.server.setRequestHandler(ListToolsRequestSchema, async () => {
+      return {
+        tools: [
+          {
+            name: 'setup_project',
+            description: 'Set up a nodash project with optimal configuration',
+            inputSchema: {
+              type: 'object',
+              properties: {
+                baseUrl: {
+                  type: 'string',
+                  description: 'Base URL for the nodash server'
+                },
+                apiToken: {
+                  type: 'string',
+                  description: 'API token (optional)'
+                },
+                environment: {
+                  type: 'string',
+                  description: 'Environment name (optional)'
+                }
+              },
+              required: ['baseUrl']
+            }
+          },
+          {
+            name: 'run_cli_command',
+            description: 'Execute a nodash CLI command',
+            inputSchema: {
+              type: 'object',
+              properties: {
+                command: {
+                  type: 'string',
+                  description: 'CLI command to run (without "nodash" prefix)'
+                },
+                args: {
+                  type: 'array',
+                  items: { type: 'string' },
+                  description: 'Command arguments'
+                }
+              },
+              required: ['command']
+            }
+          },
+          {
+            name: 'get_documentation',
+            description: 'Get documentation for SDK or CLI components',
+            inputSchema: {
+              type: 'object',
+              properties: {
+                component: {
+                  type: 'string',
+                  enum: ['sdk', 'cli'],
+                  description: 'Component to get documentation for'
+                }
+              },
+              required: ['component']
+            }
+          }
+        ]
+      };
+    });
 
-// Setup all handlers
-setupToolHandlers(
-  server,
-  projectService,
-  advancedAnalysisService,
-  implementationGuideService
-);
+    // List available resources
+    this.server.setRequestHandler(ListResourcesRequestSchema, async () => {
+      return {
+        resources: [
+          {
+            uri: 'nodash://docs/sdk',
+            name: 'SDK Documentation',
+            description: 'Complete SDK documentation with examples',
+            mimeType: 'text/markdown'
+          },
+          {
+            uri: 'nodash://docs/cli',
+            name: 'CLI Documentation', 
+            description: 'Complete CLI documentation with examples',
+            mimeType: 'text/markdown'
+          }
+        ]
+      };
+    });
 
-setupPromptHandlers(server, promptsService);
-setupResourceHandlers(server, documentationService);
+    // Read resources
+    this.server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
+      const { uri } = request.params;
 
-// Setup enhanced CLI-integrated tools after existing handlers
-enhancedToolsHandler.setupEnhancedTools(server);
+      if (uri === 'nodash://docs/sdk') {
+        const docs = this.getSDKDocumentation();
+        return {
+          contents: [
+            {
+              uri,
+              mimeType: 'text/markdown',
+              text: docs.content
+            }
+          ]
+        };
+      }
 
-// Add server-level error handling with monitoring
-server.onerror = (error) => {
-  monitoringService.error('MCP Server error', 'mcp', {
-    error: error instanceof Error ? error.message : String(error),
-    stack: error instanceof Error ? error.stack : undefined
-  });
-  performanceMonitor.recordCacheMiss(); // Track errors as cache misses for monitoring
-};
+      if (uri === 'nodash://docs/cli') {
+        const docs = this.getCLIDocumentation();
+        return {
+          contents: [
+            {
+              uri,
+              mimeType: 'text/markdown',
+              text: docs.content
+            }
+          ]
+        };
+      }
 
-// Start server
-async function main() {
-  try {
-    monitoringService.info('Initializing Nodash MCP Server with CLI integration...', 'mcp');
-    
-    // Check CLI environment
-    const envCheck = await quickEnvironmentCheck();
-    if (envCheck.cliAvailable) {
-      monitoringService.info(`CLI integration available (version: ${envCheck.version})`, 'cli');
-      monitoringService.updateHealthStatus(true, envCheck.version || undefined);
+      throw new Error(`Unknown resource: ${uri}`);
+    });
+
+    // Handle tool calls
+    this.server.setRequestHandler(CallToolRequestSchema, async (request) => {
+      const { name, arguments: args } = request.params;
+
+      switch (name) {
+        case 'setup_project':
+          return await this.setupProject(args as any);
+        
+        case 'run_cli_command':
+          return await this.runCliCommand(
+            (args as any).command,
+            (args as any).args || []
+          );
+        
+        case 'get_documentation':
+          return await this.getDocumentation((args as any).component);
+        
+        default:
+          throw new Error(`Unknown tool: ${name}`);
+      }
+    });
+  }
+
+  private async setupProject(config: ProjectConfig): Promise<{ content: SetupResult[] }> {
+    try {
+      // Initialize configuration using CLI logic
+      const initResult = await this.runCliCommandInternal('init', [
+        '--url', config.baseUrl,
+        ...(config.apiToken ? ['--token', config.apiToken] : [])
+      ]);
+
+      if (!initResult.success) {
+        return {
+          content: [{
+            success: false,
+            message: `Failed to initialize project: ${initResult.error}`,
+          }]
+        };
+      }
+
+      // Test the configuration
+      const healthResult = await this.runCliCommandInternal('health', []);
       
-      if (!envCheck.compatible) {
-        monitoringService.warn('CLI version compatibility issues detected', 'cli', {
-          issues: envCheck.issues
-        });
-        envCheck.issues.forEach(issue => console.error(`   - ${issue}`));
-      }
-    } else {
-      monitoringService.warn('CLI not available - running in MCP-only mode', 'cli');
-      monitoringService.updateHealthStatus(false);
-      console.error('   Install CLI for enhanced functionality: npm install -g @nodash/cli');
+      const result: SetupResult = {
+        success: healthResult.success,
+        message: healthResult.success 
+          ? 'Project setup completed successfully! Server is healthy and ready to use.'
+          : `Project configured but server health check failed: ${healthResult.error}`,
+        config
+      };
+
+      return { content: [result] };
+    } catch (error) {
+      return {
+        content: [{
+          success: false,
+          message: `Setup failed: ${error instanceof Error ? error.message : error}`,
+        }]
+      };
     }
-    
-    // Initialize environment
-    await environmentManager.initializeEnvironment();
-    monitoringService.info('Environment initialized', 'mcp');
-    
-    // Start performance monitoring
-    monitoringService.info('Performance monitoring enabled', 'performance');
-    
-    // Connect to transport
-    const transport = new StdioServerTransport();
-    await server.connect(transport);
-    
-    monitoringService.info('Nodash MCP Server running on stdio', 'mcp');
-    monitoringService.info('Enhanced with CLI integration and performance monitoring', 'mcp');
-    console.error('🚀 Nodash MCP Server running on stdio');
-    console.error('   Enhanced with CLI integration and performance monitoring');
-    
-    // Set up periodic cleanup with monitoring
-    setInterval(() => {
-      try {
-        // Clean up old cache entries
-        commandCache.clear();
-        
-        // Log performance metrics periodically
-        const metrics = performanceMonitor.getPerformanceSummary();
-        const statusReport = monitoringService.getStatusReport();
-        
-        if (metrics.metrics.commandExecutions > 0) {
-          monitoringService.info('Periodic performance report', 'performance', {
-            commandExecutions: metrics.metrics.commandExecutions,
-            cacheHitRate: metrics.cacheHitRate,
-            averageExecutionTime: statusReport.performance.averageExecutionTime,
-            successRate: statusReport.performance.successRate
-          });
-          console.error(`📈 Performance: ${metrics.metrics.commandExecutions} commands, ${(metrics.cacheHitRate * 100).toFixed(1)}% cache hit rate`);
-        }
-      } catch (error) {
-        monitoringService.error('Cleanup error', 'mcp', {
-          error: error instanceof Error ? error.message : String(error)
+  }
+
+  private async runCliCommand(command: string, args: string[]): Promise<{ content: CommandResult[] }> {
+    const result = await this.runCliCommandInternal(command, args);
+    return { content: [result] };
+  }
+
+  private async runCliCommandInternal(command: string, args: string[]): Promise<CommandResult> {
+    return new Promise((resolve) => {
+      // Use global nodash CLI command instead of relative path
+      const child = spawn('nodash', [command, ...args], {
+        stdio: ['pipe', 'pipe', 'pipe']
+      });
+
+      let stdout = '';
+      let stderr = '';
+
+      child.stdout?.on('data', (data) => {
+        stdout += data.toString();
+      });
+
+      child.stderr?.on('data', (data) => {
+        stderr += data.toString();
+      });
+
+      child.on('close', (code) => {
+        resolve({
+          success: code === 0,
+          output: stdout.trim(),
+          error: stderr.trim() || undefined,
+          exitCode: code || 0
         });
-      }
-    }, 5 * 60 * 1000); // Every 5 minutes
-    
-  } catch (error) {
-    console.error('Failed to initialize MCP Server:', error);
-    process.exit(1);
+      });
+
+      child.on('error', (error) => {
+        resolve({
+          success: false,
+          output: '',
+          error: error.message,
+          exitCode: 1
+        });
+      });
+    });
+  }
+
+  private async getDocumentation(component: 'sdk' | 'cli'): Promise<{ content: any[] }> {
+    try {
+      const docs = component === 'sdk' 
+        ? this.getSDKDocumentation()
+        : this.getCLIDocumentation();
+
+      return {
+        content: [{
+          component: docs.component,
+          content: docs.content,
+          examples: docs.examples,
+          lastUpdated: docs.lastUpdated
+        }]
+      };
+    } catch (error) {
+      throw new Error(`Failed to get ${component} documentation: ${error}`);
+    }
+  }
+
+  async start() {
+    const transport = new StdioServerTransport();
+    await this.server.connect(transport);
+    console.error('Nodash MCP Server started');
   }
 }
 
-// Handle graceful shutdown with monitoring
-process.on('SIGINT', () => {
-  monitoringService.info('Shutting down Nodash MCP Server...', 'mcp');
-  console.error('Shutting down Nodash MCP Server...');
-  
-  // Log final performance metrics
-  const finalMetrics = performanceMonitor.getPerformanceSummary();
-  const finalStatusReport = monitoringService.getStatusReport();
-  
-  monitoringService.info('Final performance metrics', 'performance', {
-    metrics: finalMetrics.metrics,
-    statusReport: finalStatusReport
-  });
-  console.error('Final performance metrics:', JSON.stringify(finalMetrics.metrics, null, 2));
-  
-  // Cleanup monitoring service
-  monitoringService.cleanup();
-  
-  process.exit(0);
-});
-
-process.on('SIGTERM', () => {
-  monitoringService.info('Received SIGTERM, shutting down gracefully...', 'mcp');
-  console.error('Received SIGTERM, shutting down gracefully...');
-  
-  // Cleanup monitoring service
-  monitoringService.cleanup();
-  
-  process.exit(0);
-});
-
-main().catch((error) => {
-  monitoringService.error('Server startup error', 'mcp', {
-    error: error instanceof Error ? error.message : String(error),
-    stack: error instanceof Error ? error.stack : undefined
-  });
-  console.error('Server startup error:', error);
+// Start the server
+const server = new NodashMCPServer();
+server.start().catch((error) => {
+  console.error('Failed to start server:', error);
   process.exit(1);
-});                                                                                                                                                                                                                                                                                  
+});
