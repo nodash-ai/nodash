@@ -10,7 +10,9 @@
     "prebuild": "node scripts/bundle-docs.js",
     "build": "tsc",
     "dev": "tsc --watch",
-    "start": "node dist/server.js"
+    "start": "node dist/server.js",
+    "test": "vitest",
+    "test:run": "vitest run"
   },
   "keywords": ["nodash", "mcp", "ai-agents", "model-context-protocol"],
   "author": "Nodash Team",
@@ -22,12 +24,11 @@
   },
   "devDependencies": {
     "typescript": "^5.0.0",
-    "@types/node": "^20.0.0"
+    "@types/node": "^20.0.0",
+    "vitest": "^1.0.0"
   },
   "files": [
     "dist/**/*",
-    "README.md",
-    "../nodash-sdk/README.md",
-    "../nodash-cli/README.md"
+    "README.md"
   ]
 }

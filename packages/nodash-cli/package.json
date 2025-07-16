@@ -8,7 +8,9 @@
   },
   "scripts": {
     "build": "tsc",
-    "dev": "tsc --watch"
+    "dev": "tsc --watch",
+    "test": "vitest",
+    "test:run": "vitest run"
   },
   "keywords": ["nodash", "cli", "developer-tools"],
   "author": "Nodash Team",
@@ -19,7 +21,8 @@
   },
   "devDependencies": {
     "typescript": "^5.0.0",
-    "@types/node": "^20.0.0"
+    "@types/node": "^20.0.0",
+    "vitest": "^1.0.0"
   },
   "files": [
     "dist/**/*",

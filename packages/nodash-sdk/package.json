@@ -14,14 +14,19 @@
   },
   "scripts": {
     "build": "node scripts/build-dual.js",
-    "dev": "tsc --watch"
+    "dev": "tsc --watch",
+    "test": "vitest",
+    "test:run": "vitest run"
   },
   "keywords": ["nodash", "sdk", "analytics", "tracking", "web", "browser", "esm"],
   "author": "Nodash Team",
   "license": "MIT",
   "dependencies": {},
   "devDependencies": {
-    "typescript": "^5.0.0"
+    "typescript": "^5.0.0",
+    "vitest": "^1.0.0",
+    "@types/node": "^20.0.0",
+    "jsdom": "^23.0.0"
   },
   "files": [
     "dist/**/*",

@@ -18,12 +18,15 @@ export class NodashSDK {
       throw new Error('baseUrl must be a valid URL');
     }
 
+    // Normalize baseUrl by removing trailing slash
+    const normalizedBaseUrl = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
+
     this.config = {
-      baseUrl,
+      baseUrl: normalizedBaseUrl,
       apiToken,
     };
 
-    this.client = new HttpClient(baseUrl, apiToken);
+    this.client = new HttpClient(normalizedBaseUrl, apiToken);
   }
 
   /**
