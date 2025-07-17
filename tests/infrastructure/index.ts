@@ -24,6 +24,30 @@ export {
   type TimeMockConfig
 } from './mock-infrastructure';
 
+// MCP Testing Components
+export {
+  MCPServerManager,
+  type MCPServerConfig,
+  type MCPServerInstance,
+  type MCPServerHealth
+} from './mcp-server-manager';
+
+export {
+  MCPToolTester,
+  type MCPToolTestConfig,
+  type MCPToolResult,
+  type SetupProjectParams,
+  type RunCliCommandParams,
+  type GetDocumentationParams
+} from './mcp-tool-tester';
+
+export {
+  MCPResourceValidator,
+  type MCPResourceValidationConfig,
+  type MCPResourceValidationResult,
+  type MCPResourceListResult
+} from './mcp-resource-validator';
+
 // Test Utilities
 export {
   CLITestRunner,
