@@ -11,6 +11,12 @@ import {
 import { ProjectConfig, SetupResult, CommandResult, Documentation, SetupStep } from './types.js';
 import { SDK_DOCUMENTATION, CLI_DOCUMENTATION, extractExamples } from './bundled-docs.js';
 import { spawn } from 'child_process';
+import path from 'path';
+import fs from 'fs';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 class NodashMCPServer {
   private server: Server;
@@ -282,9 +288,9 @@ class NodashMCPServer {
       // Try to find the CLI executable - first try local build, then global
       const cliPaths = [
         // Local development path
-        require('path').resolve(__dirname, '../../nodash-cli/dist/cli.js'),
+        path.resolve(__dirname, '../../nodash-cli/dist/cli.js'),
         // Alternative local path
-        require('path').resolve(__dirname, '../../../nodash-cli/dist/cli.js'),
+        path.resolve(__dirname, '../../../nodash-cli/dist/cli.js'),
         // Global nodash command
         'nodash'
       ];
@@ -293,10 +299,10 @@ class NodashMCPServer {
       let useNode = false;
 
       // Check if local CLI exists
-      for (const path of cliPaths.slice(0, -1)) {
+      for (const cliPathCandidate of cliPaths.slice(0, -1)) {
         try {
-          require('fs').accessSync(path);
-          cliPath = path;
+          fs.accessSync(cliPathCandidate);
+          cliPath = cliPathCandidate;
           useNode = true;
           break;
         } catch {
