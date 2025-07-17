@@ -18,7 +18,7 @@
     "test:component": "npm run test:run --workspaces",
     "test:integration": "vitest run --config vitest.integration.config.ts",
     "test:e2e": "vitest run --config vitest.e2e.config.ts",
-    "typecheck": "npm run typecheck --workspaces --if-present",
+    "typecheck": "tsc --build",
     "build:check": "npm run build --workspaces"
   },
   "devDependencies": {

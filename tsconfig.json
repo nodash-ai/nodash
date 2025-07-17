@@ -12,17 +12,18 @@
     "forceConsistentCasingInFileNames": true,
     "declaration": true,
     "sourceMap": true,
-    "noEmit": true
+    "noEmit": true,
+    "composite": true
   },
-  "include": [
-    "packages/*/src/**/*"
+  "references": [
+    { "path": "./packages/nodash-sdk" },
+    { "path": "./packages/nodash-cli" },
+    { "path": "./packages/nodash-mcp" }
   ],
+  "files": [],
   "exclude": [
     "node_modules",
     "**/dist",
-    "**/node_modules",
-    "tests/**/*",
-    "scripts/**/*",
-    "packages/nodash-mcp/**/*"
+    "**/node_modules"
   ]
 }

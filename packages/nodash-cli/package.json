@@ -8,13 +8,17 @@
     "nodash": "dist/cli.js"
   },
   "scripts": {
-    "build": "tsc",
+    "build": "tsc -p tsconfig.build.json",
     "dev": "tsc --watch",
     "test": "vitest",
     "test:run": "vitest run",
     "typecheck": "tsc --noEmit"
   },
-  "keywords": ["nodash", "cli", "developer-tools"],
+  "keywords": [
+    "nodash",
+    "cli",
+    "developer-tools"
+  ],
   "author": "Nodash Team",
   "license": "MIT",
   "dependencies": {
