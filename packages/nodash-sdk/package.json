@@ -16,7 +16,8 @@
     "build": "node scripts/build-dual.js",
     "dev": "tsc --watch",
     "test": "vitest",
-    "test:run": "vitest run"
+    "test:run": "vitest run --reporter=verbose --pool=threads",
+    "typecheck": "tsc --noEmit --incremental"
   },
   "keywords": ["nodash", "sdk", "analytics", "tracking", "web", "browser", "esm"],
   "author": "Nodash Team",

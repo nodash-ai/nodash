@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { NodashSDK } from '../dist/index.js';
+import { NodashSDK } from '../dist/index';
 
 // Mock server responses
 const mockHealthResponse = {

@@ -2,7 +2,8 @@
   "name": "@nodash/cli",
   "version": "0.1.0",
   "description": "CLI tool for nodash - developer layer",
-  "main": "dist/index.js",
+  "main": "dist/cli.js",
+  "types": "dist/cli.d.ts",
   "bin": {
     "nodash": "dist/cli.js"
   },
@@ -10,7 +11,8 @@
     "build": "tsc",
     "dev": "tsc --watch",
     "test": "vitest",
-    "test:run": "vitest run"
+    "test:run": "vitest run",
+    "typecheck": "tsc --noEmit"
   },
   "keywords": ["nodash", "cli", "developer-tools"],
   "author": "Nodash Team",

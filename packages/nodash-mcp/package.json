@@ -2,7 +2,8 @@
   "name": "@nodash/mcp",
   "version": "0.1.1",
   "description": "MCP server for nodash - AI agent layer",
-  "main": "dist/index.js",
+  "main": "dist/server.js",
+  "types": "dist/server.d.ts",
   "bin": {
     "nodash-mcp": "dist/server.js"
   },
@@ -12,7 +13,8 @@
     "dev": "tsc --watch",
     "start": "node dist/server.js",
     "test": "vitest",
-    "test:run": "vitest run"
+    "test:run": "vitest run",
+    "typecheck": "tsc --noEmit"
   },
   "keywords": [
     "nodash",
