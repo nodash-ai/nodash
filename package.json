@@ -7,7 +7,7 @@
     "packages/*"
   ],
   "scripts": {
-    "build": "npm run build --workspaces",
+    "build": "npm run build -w @nodash/sdk && npm run build -w @nodash/cli && npm run build -w @nodash/mcp",
     "dev": "npm run dev --workspaces",
     "clean": "rm -rf packages/*/dist",
     "test": "npm run test --workspaces",
