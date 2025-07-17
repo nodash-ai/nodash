@@ -28,11 +28,11 @@ jobs:
     - name: Install dependencies
       run: npm ci
       
+    - name: Build packages
+      run: npm run build
+      
     - name: Run TypeScript checks
       run: npm run typecheck
-      
-    - name: Run build verification
-      run: npm run build:check
       
     - name: Run component tests
       run: npm run test:component
@@ -71,6 +71,9 @@ jobs:
         
     - name: Install dependencies
       run: npm ci
+      
+    - name: Build packages
+      run: npm run build
       
     - name: Check TypeScript types
       run: npm run typecheck
@@ -126,6 +129,9 @@ jobs:
         
     - name: Install dependencies
       run: npm ci
+      
+    - name: Build packages
+      run: npm run build
       
     - name: Run comprehensive CI test suite
       run: npm run test:ci
