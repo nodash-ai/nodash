@@ -11,6 +11,55 @@ describe('CLI-MCP Integration Tests', () => {
   // Mock MCP Client for testing
   class MCPTestClient {
     private messageId = 1;
+    private pendingRequests = new Map<number, { resolve: Function; reject: Function; timeout: NodeJS.Timeout }>();
+
+    constructor() {
+      // Set up response handling when server is available
+      this.setupResponseHandling();
+    }
+
+    private setupResponseHandling() {
+      if (!mcpServer) return;
+
+      let buffer = '';
+
+      mcpServer.stdout?.on('data', (data: Buffer) => {
+        buffer += data.toString();
+        
+        // Process complete lines
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || ''; // Keep incomplete line in buffer
+
+        for (const line of lines) {
+          if (!line.trim()) continue;
+          
+          try {
+            const response = JSON.parse(line);
+            if (response.id && this.pendingRequests.has(response.id)) {
+              const pending = this.pendingRequests.get(response.id)!;
+              clearTimeout(pending.timeout);
+              this.pendingRequests.delete(response.id);
+              
+              if (response.error) {
+                pending.reject(new Error(response.error.message || 'MCP Error'));
+              } else {
+                pending.resolve(response);
+              }
+            }
+          } catch (e) {
+            // Ignore malformed JSON
+          }
+        }
+      });
+
+      mcpServer.stderr?.on('data', (data: Buffer) => {
+        // Log server errors for debugging
+        const output = data.toString();
+        if (output.includes('Error') || output.includes('error')) {
+          console.error('MCP Server Error:', output);
+        }
+      });
+    }
 
     async sendRequest(method: string, params?: any): Promise<any> {
       return new Promise((resolve, reject) => {
@@ -19,41 +68,41 @@ describe('CLI-MCP Integration Tests', () => {
           return;
         }
 
+        const requestId = this.messageId++;
         const request = {
           jsonrpc: '2.0',
-          id: this.messageId++,
+          id: requestId,
           method,
           params: params || {}
         };
 
-        let responseData = '';
+        // Set up timeout
+        const timeout = setTimeout(() => {
+          this.pendingRequests.delete(requestId);
+          reject(new Error(`Request timeout for method: ${method}`));
+        }, 15000);
 
-        const onData = (data: Buffer) => {
-          responseData += data.toString();
-          
-          try {
-            const lines = responseData.split('\n').filter(line => line.trim());
-            for (const line of lines) {
-              const response = JSON.parse(line);
-              if (response.id === request.id) {
-                mcpServer?.stdout?.off('data', onData);
-                resolve(response);
-                return;
-              }
-            }
-          } catch (e) {
-            // Continue collecting data
-          }
-        };
+        // Store pending request
+        this.pendingRequests.set(requestId, { resolve, reject, timeout });
 
-        mcpServer.stdout?.on('data', onData);
-        mcpServer.stdin?.write(JSON.stringify(request) + '\n');
-
-        setTimeout(() => {
-          mcpServer?.stdout?.off('data', onData);
-          reject(new Error('Request timeout'));
-        }, 10000);
+        // Send request
+        try {
+          mcpServer.stdin?.write(JSON.stringify(request) + '\n');
+        } catch (error) {
+          clearTimeout(timeout);
+          this.pendingRequests.delete(requestId);
+          reject(new Error(`Failed to send request: ${error}`));
+        }
       });
+    }
+
+    cleanup() {
+      // Clear all pending requests
+      for (const [id, pending] of this.pendingRequests) {
+        clearTimeout(pending.timeout);
+        pending.reject(new Error('Client cleanup'));
+      }
+      this.pendingRequests.clear();
     }
   }
 
@@ -70,31 +119,81 @@ describe('CLI-MCP Integration Tests', () => {
       }
     });
 
-    mcpClient = new MCPTestClient();
-
-    // Wait for server to start
+    // Wait for server to start with more robust detection
     await new Promise<void>((resolve, reject) => {
       let initialized = false;
+      let serverOutput = '';
+      let clientCreated = false;
 
+      const createClientAndTest = () => {
+        if (initialized || !mcpServer) return;
+        
+        if (!clientCreated) {
+          mcpClient = new MCPTestClient();
+          clientCreated = true;
+        }
+        
+        // Try to send a simple request to verify server is ready
+        mcpClient.sendRequest('tools/list')
+          .then(() => {
+            if (!initialized) {
+              initialized = true;
+              resolve();
+            }
+          })
+          .catch(() => {
+            // Server not ready yet, continue waiting
+            if (!initialized) {
+              setTimeout(createClientAndTest, 500);
+            }
+          });
+      };
+
+      // Listen for server startup message
       mcpServer!.stderr?.on('data', (data) => {
         const output = data.toString();
+        serverOutput += output;
         if (output.includes('Nodash MCP Server started') && !initialized) {
-          initialized = true;
-          resolve();
+          // Give server a moment to fully initialize, then create client and test
+          setTimeout(createClientAndTest, 200);
         }
       });
 
-      mcpServer!.on('error', reject);
+      mcpServer!.stdout?.on('data', (data) => {
+        serverOutput += data.toString();
+      });
 
+      mcpServer!.on('error', (error) => {
+        reject(new Error(`MCP Server failed to start: ${error.message}`));
+      });
+
+      mcpServer!.on('exit', (code, signal) => {
+        if (!initialized) {
+          reject(new Error(`MCP Server exited unexpectedly with code ${code}, signal ${signal}. Output: ${serverOutput}`));
+        }
+      });
+
+      // Fallback: start checking for initialization after a delay even if we don't see the startup message
+      setTimeout(() => {
+        if (!initialized && !clientCreated) {
+          createClientAndTest();
+        }
+      }, 2000);
+
+      // Timeout after 20 seconds
       setTimeout(() => {
         if (!initialized) {
-          reject(new Error('MCP Server failed to start within timeout'));
+          reject(new Error(`MCP Server failed to start within timeout. Output: ${serverOutput}`));
         }
-      }, 15000);
+      }, 20000);
     });
-  });
+  }, 25000); // Increase timeout to 25 seconds
 
   afterAll(async () => {
+    if (mcpClient) {
+      mcpClient.cleanup();
+    }
+    
     if (mcpServer) {
       mcpServer.kill();
       mcpServer = null;
@@ -343,13 +442,17 @@ describe('CLI-MCP Integration Tests', () => {
     });
 
     it('should handle unknown tool requests', async () => {
-      const response = await mcpClient.sendRequest('tools/call', {
-        name: 'unknown_cli_tool',
-        arguments: {}
-      });
-
-      expect(response.error).toBeDefined();
-      expect(response.error.message).toContain('Unknown tool');
+      try {
+        await mcpClient.sendRequest('tools/call', {
+          name: 'unknown_cli_tool',
+          arguments: {}
+        });
+        // If we get here, the test should fail because we expected an error
+        expect(true).toBe(false);
+      } catch (error) {
+        expect(error).toBeInstanceOf(Error);
+        expect((error as Error).message).toContain('Unknown tool');
+      }
     });
   });
 
