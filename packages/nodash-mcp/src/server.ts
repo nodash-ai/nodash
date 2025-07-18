@@ -137,7 +137,7 @@ class NodashMCPServer {
           },
           {
             uri: 'nodash://docs/cli',
-            name: 'CLI Documentation', 
+            name: 'CLI Documentation',
             description: 'Complete CLI documentation with examples',
             mimeType: 'text/markdown'
           }
@@ -185,32 +185,36 @@ class NodashMCPServer {
       switch (name) {
         case 'setup_project':
           return await this.setupProject(args as any);
-        
+
         case 'run_cli_command':
           return await this.runCliCommand(
             (args as any).command,
             (args as any).args || []
           );
-        
+
         case 'get_documentation':
           return await this.getDocumentation((args as any).component);
-        
+
         default:
           throw new Error(`Unknown tool: ${name}`);
       }
     });
   }
 
-  private async setupProject(config: ProjectConfig): Promise<{ content: SetupResult[] }> {
+  private async setupProject(config: ProjectConfig): Promise<{ content: Array<{ type: string; text: string }> }> {
     try {
       // Validate required parameters
       if (!config.baseUrl) {
+        const result = {
+          success: false,
+          message: 'Setup failed: baseUrl is required',
+          error: 'Missing required parameter: baseUrl',
+          steps: []
+        };
         return {
           content: [{
-            success: false,
-            message: 'Setup failed: baseUrl is required',
-            error: 'Missing required parameter: baseUrl',
-            steps: []
+            type: "text",
+            text: JSON.stringify(result, null, 2)
           }]
         };
       }
@@ -236,13 +240,17 @@ class NodashMCPServer {
       }
 
       if (!initResult.success) {
+        const result = {
+          success: false,
+          message: `Failed to initialize project: ${initResult.error}`,
+          error: initResult.error,
+          steps,
+          config
+        };
         return {
           content: [{
-            success: false,
-            message: `Failed to initialize project: ${initResult.error}`,
-            error: initResult.error,
-            steps,
-            config
+            type: "text",
+            text: JSON.stringify(result, null, 2)
           }]
         };
       }
@@ -255,7 +263,7 @@ class NodashMCPServer {
       steps.push(healthStep);
 
       const healthResult = await this.runCliCommandInternal('health', []);
-      
+
       healthStep.status = healthResult.success ? 'completed' : 'failed';
       healthStep.output = healthResult.output;
       if (!healthResult.success) {
@@ -264,29 +272,43 @@ class NodashMCPServer {
 
       const result: SetupResult = {
         success: initResult.success, // Setup is successful if init worked, even if health check fails
-        message: healthResult.success 
+        message: healthResult.success
           ? 'Project setup completed successfully! Server is healthy and ready to use.'
           : `Project configured successfully, but server health check failed: ${healthResult.error}`,
         config,
         steps
       };
 
-      return { content: [result] };
-    } catch (error) {
       return {
         content: [{
-          success: false,
-          message: `Setup failed: ${error instanceof Error ? error.message : error}`,
-          error: error instanceof Error ? error.message : String(error),
-          steps: []
+          type: "text",
+          text: JSON.stringify(result, null, 2)
+        }]
+      };
+    } catch (error) {
+      const result = {
+        success: false,
+        message: `Setup failed: ${error instanceof Error ? error.message : error}`,
+        error: error instanceof Error ? error.message : String(error),
+        steps: []
+      };
+      return {
+        content: [{
+          type: "text",
+          text: JSON.stringify(result, null, 2)
         }]
       };
     }
   }
 
-  private async runCliCommand(command: string, args: string[]): Promise<{ content: CommandResult[] }> {
+  private async runCliCommand(command: string, args: string[]): Promise<{ content: Array<{ type: string; text: string }> }> {
     const result = await this.runCliCommandInternal(command, args);
-    return { content: [result] };
+    return {
+      content: [{
+        type: "text",
+        text: JSON.stringify(result, null, 2)
+      }]
+    };
   }
 
   private async runCliCommandInternal(command: string, args: string[]): Promise<CommandResult> {
@@ -358,18 +380,23 @@ class NodashMCPServer {
     });
   }
 
-  private async getDocumentation(component: 'sdk' | 'cli'): Promise<{ content: any[] }> {
+  private async getDocumentation(component: 'sdk' | 'cli'): Promise<{ content: Array<{ type: string; text: string }> }> {
     try {
-      const docs = component === 'sdk' 
+      const docs = component === 'sdk'
         ? this.getSDKDocumentation()
         : this.getCLIDocumentation();
 
+      const result = {
+        component: docs.component,
+        content: docs.content,
+        examples: docs.examples,
+        lastUpdated: docs.lastUpdated
+      };
+
       return {
         content: [{
-          component: docs.component,
-          content: docs.content,
-          examples: docs.examples,
-          lastUpdated: docs.lastUpdated
+          type: "text",
+          text: JSON.stringify(result, null, 2)
         }]
       };
     } catch (error) {

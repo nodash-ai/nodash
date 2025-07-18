@@ -8,6 +8,20 @@ describe('CLI-MCP Integration Tests', () => {
   let mcpServer: ChildProcess | null = null;
   const testConfigDir = path.join(os.tmpdir(), 'nodash-cli-mcp-test');
 
+  // Helper function to parse MCP protocol responses
+  function parseMCPContent(response: any) {
+    if (!response.result?.content?.[0]) {
+      throw new Error('Invalid MCP response format');
+    }
+    
+    const content = response.result.content[0];
+    if (content.type !== 'text') {
+      throw new Error('Expected text content in MCP response');
+    }
+    
+    return JSON.parse(content.text);
+  }
+
   // Mock MCP Client for testing
   class MCPTestClient {
     private messageId = 1;
@@ -249,7 +263,8 @@ describe('CLI-MCP Integration Tests', () => {
       expect(response.result.content).toBeInstanceOf(Array);
       expect(response.result.content.length).toBe(1);
 
-      const setupResult = response.result.content[0];
+      // Parse MCP protocol response
+      const setupResult = parseMCPContent(response);
       expect(setupResult.success).toBeDefined();
       expect(setupResult.message).toBeDefined();
       expect(setupResult.steps).toBeInstanceOf(Array);
@@ -268,7 +283,8 @@ describe('CLI-MCP Integration Tests', () => {
         }
       });
 
-      const setupResult = response.result.content[0];
+      // Parse MCP protocol response
+      const setupResult = parseMCPContent(response);
       expect(setupResult.success).toBeDefined();
       // The message should mention the baseUrl was configured, even if health check fails
       expect(setupResult.message).toContain('configured');
@@ -284,7 +300,8 @@ describe('CLI-MCP Integration Tests', () => {
       expect(response.result || response.error).toBeDefined();
       
       if (response.result) {
-        const setupResult = response.result.content[0];
+        // Parse MCP protocol response
+        const setupResult = parseMCPContent(response);
         expect(setupResult.success).toBe(false);
         expect(setupResult.error).toContain('baseUrl');
       }
@@ -304,7 +321,8 @@ describe('CLI-MCP Integration Tests', () => {
       expect(response.result.content).toBeInstanceOf(Array);
       expect(response.result.content.length).toBe(1);
 
-      const commandResult = response.result.content[0];
+      // Parse MCP protocol response
+      const commandResult = parseMCPContent(response);
       expect(commandResult.success).toBeDefined();
       expect(commandResult.output).toBeDefined();
       expect(commandResult.exitCode).toBeDefined();
@@ -319,7 +337,8 @@ describe('CLI-MCP Integration Tests', () => {
         }
       });
 
-      const commandResult = response.result.content[0];
+      // Parse MCP protocol response
+      const commandResult = parseMCPContent(response);
       expect(commandResult.command).toBe('nodash version');
       
       // Command might fail if CLI isn't globally installed, but MCP should handle it
@@ -335,7 +354,8 @@ describe('CLI-MCP Integration Tests', () => {
         }
       });
 
-      const commandResult = response.result.content[0];
+      // Parse MCP protocol response
+      const commandResult = parseMCPContent(response);
       expect(commandResult.command).toBe('nodash config get');
       expect(typeof commandResult.success).toBe('boolean');
     });
@@ -348,7 +368,8 @@ describe('CLI-MCP Integration Tests', () => {
         }
       });
 
-      const commandResult = response.result.content[0];
+      // Parse MCP protocol response
+      const commandResult = parseMCPContent(response);
       expect(commandResult.command).toContain('nodash track test_event');
       expect(commandResult.command).toContain('--properties');
       expect(typeof commandResult.success).toBe('boolean');
@@ -362,7 +383,8 @@ describe('CLI-MCP Integration Tests', () => {
         }
       });
 
-      const commandResult = response.result.content[0];
+      // Parse MCP protocol response
+      const commandResult = parseMCPContent(response);
       expect(commandResult.success).toBe(false);
       expect(commandResult.exitCode).not.toBe(0);
       expect(commandResult.error || commandResult.output).toBeDefined();
@@ -379,8 +401,9 @@ describe('CLI-MCP Integration Tests', () => {
       });
 
       expect(response.result).toBeDefined();
-      const docData = response.result.content[0];
       
+      // Parse MCP protocol response
+      const docData = parseMCPContent(response);
       expect(docData.component).toBe('cli');
       expect(docData.content).toContain('# @nodash/cli');
       expect(docData.examples).toBeInstanceOf(Array);
@@ -419,7 +442,8 @@ describe('CLI-MCP Integration Tests', () => {
         }
       });
 
-      const commandResult = response.result.content[0];
+      // Parse MCP protocol response
+      const commandResult = parseMCPContent(response);
       expect(commandResult.success).toBe(false);
       expect(commandResult.exitCode).not.toBe(0);
       expect(commandResult.error || commandResult.output).toContain('missing required argument');
@@ -433,7 +457,8 @@ describe('CLI-MCP Integration Tests', () => {
         }
       });
 
-      const setupResult = response.result.content[0];
+      // Parse MCP protocol response
+      const setupResult = parseMCPContent(response);
       // Should either succeed with warning or fail gracefully
       expect(typeof setupResult.success).toBe('boolean');
       if (!setupResult.success) {
@@ -469,7 +494,9 @@ describe('CLI-MCP Integration Tests', () => {
         name: 'get_documentation',
         arguments: { component: 'cli' }
       });
-      expect(docsResponse.result.content[0].examples.length).toBeGreaterThan(0);
+      // Parse MCP protocol response
+      const docsData = parseMCPContent(docsResponse);
+      expect(docsData.examples.length).toBeGreaterThan(0);
 
       // 3. Agent sets up project
       const setupResponse = await mcpClient.sendRequest('tools/call', {
@@ -480,14 +507,18 @@ describe('CLI-MCP Integration Tests', () => {
           environment: 'development'
         }
       });
-      expect(setupResponse.result.content[0].success).toBeDefined();
+      // Parse MCP protocol response
+      const setupData = parseMCPContent(setupResponse);
+      expect(setupData.success).toBeDefined();
 
       // 4. Agent verifies setup by running config command
       const configResponse = await mcpClient.sendRequest('tools/call', {
         name: 'run_cli_command',
         arguments: { command: 'config get' }
       });
-      expect(configResponse.result.content[0].command).toBe('nodash config get');
+      // Parse MCP protocol response
+      const configData = parseMCPContent(configResponse);
+      expect(configData.command).toBe('nodash config get');
     });
 
     it('should support agent-driven troubleshooting workflow', async () => {
@@ -496,21 +527,27 @@ describe('CLI-MCP Integration Tests', () => {
         name: 'run_cli_command',
         arguments: { command: 'help' }
       });
-      expect(helpResponse.result.content[0].command).toBe('nodash help');
+      // Parse MCP protocol response
+      const helpData = parseMCPContent(helpResponse);
+      expect(helpData.command).toBe('nodash help');
 
       // 2. Agent checks current configuration
       const configResponse = await mcpClient.sendRequest('tools/call', {
         name: 'run_cli_command',
         arguments: { command: 'config get' }
       });
-      expect(configResponse.result.content[0].command).toBe('nodash config get');
+      // Parse MCP protocol response
+      const configData = parseMCPContent(configResponse);
+      expect(configData.command).toBe('nodash config get');
 
       // 3. Agent attempts health check
       const healthResponse = await mcpClient.sendRequest('tools/call', {
         name: 'run_cli_command',
         arguments: { command: 'health' }
       });
-      expect(healthResponse.result.content[0].command).toBe('nodash health');
+      // Parse MCP protocol response
+      const healthData = parseMCPContent(healthResponse);
+      expect(healthData.command).toBe('nodash health');
     });
 
     it('should support agent-driven analytics workflow', async () => {
@@ -522,7 +559,9 @@ describe('CLI-MCP Integration Tests', () => {
           apiToken: 'analytics-token'
         }
       });
-      expect(setupResponse.result.content[0].success).toBeDefined();
+      // Parse MCP protocol response
+      const setupData = parseMCPContent(setupResponse);
+      expect(setupData.success).toBeDefined();
 
       // 2. Agent tracks test event
       const trackResponse = await mcpClient.sendRequest('tools/call', {
@@ -531,14 +570,18 @@ describe('CLI-MCP Integration Tests', () => {
           command: 'track agent_test_event --properties {"agent":"mcp","workflow":"analytics"}'
         }
       });
-      expect(trackResponse.result.content[0].command).toContain('track agent_test_event');
+      // Parse MCP protocol response
+      const trackData = parseMCPContent(trackResponse);
+      expect(trackData.command).toContain('track agent_test_event');
 
       // 3. Agent verifies health
       const healthResponse = await mcpClient.sendRequest('tools/call', {
         name: 'run_cli_command',
         arguments: { command: 'health' }
       });
-      expect(healthResponse.result.content[0].command).toBe('nodash health');
+      // Parse MCP protocol response
+      const healthData = parseMCPContent(healthResponse);
+      expect(healthData.command).toBe('nodash health');
     });
   });
 
@@ -567,11 +610,17 @@ describe('CLI-MCP Integration Tests', () => {
 
         if (testCase.shouldSucceed) {
           expect(response.result).toBeDefined();
-          const result = response.result.content[0];
+          // Parse MCP protocol response
+          const result = parseMCPContent(response);
           expect(typeof result.success).toBe('boolean');
         } else {
           // Should either return error or success=false
           expect(response.result || response.error).toBeDefined();
+          if (response.result) {
+            // Parse MCP protocol response
+            const result = parseMCPContent(response);
+            expect(result.success).toBe(false);
+          }
         }
       }
     });
@@ -590,7 +639,8 @@ describe('CLI-MCP Integration Tests', () => {
         });
 
         expect(response.result).toBeDefined();
-        const result = response.result.content[0];
+        // Parse MCP protocol response
+        const result = parseMCPContent(response);
         
         if (testCase.shouldSucceed) {
           expect(result.command).toBeDefined();
