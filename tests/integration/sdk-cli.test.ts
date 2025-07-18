@@ -33,12 +33,12 @@ describe('SDK-CLI Integration Tests', () => {
   beforeEach(async () => {
     await testServer.reset();
     sdk = new NodashSDK(TEST_BASE_URL);
-    
+
     // Clean up any existing config
     if (fs.existsSync(testConfigDir)) {
       fs.rmSync(testConfigDir, { recursive: true, force: true });
     }
-    
+
     // Ensure clean config directory exists
     fs.mkdirSync(testConfigDir, { recursive: true });
   });
@@ -97,7 +97,7 @@ describe('SDK-CLI Integration Tests', () => {
         '--url', TEST_BASE_URL,
         '--token', 'integration-test-token'
       ]);
-      
+
       expect(initResult.exitCode).toBe(0);
       expect(initResult.stdout).toContain('✅ Set base URL');
       expect(initResult.stdout).toContain('✅ Set API token');
@@ -198,7 +198,7 @@ describe('SDK-CLI Integration Tests', () => {
   describe('Type Safety Integration', () => {
     it('should maintain type safety across SDK and CLI boundaries', async () => {
       // This test verifies that the CLI properly handles the same data types as the SDK
-      
+
       // 1. Test with complex properties via SDK
       const complexProperties = {
         userId: 'user123',
@@ -271,18 +271,23 @@ describe('SDK-CLI Integration Tests', () => {
       ];
 
       for (const env of environments) {
+        // Create a unique config directory for each environment
+        const envConfigDir = path.join(testConfigDir, `env-${env.name}`);
+        const envVars = { NODASH_CONFIG_DIR: envConfigDir };
+
         // 1. Configure for environment
-        await runCLI(['config', 'set', 'baseUrl', env.url]);
-        await runCLI(['config', 'set', 'apiToken', env.token]);
+        await runCLI(['config', 'set', 'baseUrl', env.url], envVars);
+        await runCLI(['config', 'set', 'apiToken', env.token], envVars);
 
         // 2. Track environment-specific event via SDK
         const envSdk = new NodashSDK(env.url, env.token);
         await envSdk.track('env_test', { environment: env.name });
 
-        // 3. Verify configuration was set (may not match exactly due to test isolation)
-        const configResult = await runCLI(['config', 'get']);
+        // 3. Verify configuration was set
+        const configResult = await runCLI(['config', 'get'], envVars);
         expect(configResult.exitCode).toBe(0);
         expect(configResult.stdout).toContain('baseUrl');
+        expect(configResult.stdout).toContain(env.url);
       }
 
       // Verify all events were tracked
@@ -313,7 +318,7 @@ describe('SDK-CLI Integration Tests', () => {
       // Verify all events were tracked
       const analytics = testServer.getAnalytics();
       expect(analytics).toHaveLength(3);
-      
+
       // Verify events have correct indices
       const indices = analytics.map(a => a.properties.index).sort();
       expect(indices).toEqual([1, 2, 3]);
@@ -321,7 +326,7 @@ describe('SDK-CLI Integration Tests', () => {
 
     it('should handle rapid sequential operations', async () => {
       const events: Promise<void>[] = [];
-      
+
       // Track multiple events rapidly
       for (let i = 0; i < 10; i++) {
         events.push(sdk.track(`rapid_event_${i}`, { sequence: i }));
@@ -332,7 +337,7 @@ describe('SDK-CLI Integration Tests', () => {
       // Verify all events were tracked
       const analytics = testServer.getAnalytics();
       expect(analytics).toHaveLength(10);
-      
+
       // Verify sequence numbers
       const sequences = analytics.map(a => a.properties.sequence).sort((a, b) => a - b);
       expect(sequences).toEqual([0, 1, 2, 3, 4, 5, 6, 7, 8, 9]);

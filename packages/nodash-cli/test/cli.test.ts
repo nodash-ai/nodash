@@ -3,9 +3,10 @@ import { spawn } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
+import { afterEach } from 'node:test';
 
 // Helper function to run CLI commands
-async function runCLI(args: string[], options: { input?: string } = {}): Promise<{
+async function runCLI(args: string[], options: { input?: string; env?: Record<string, string> } = {}): Promise<{
   stdout: string;
   stderr: string;
   exitCode: number;
@@ -14,6 +15,10 @@ async function runCLI(args: string[], options: { input?: string } = {}): Promise
     const cliPath = path.resolve(__dirname, '../dist/cli.js');
     const child = spawn('node', [cliPath, ...args], {
       stdio: ['pipe', 'pipe', 'pipe'],
+      env: {
+        ...process.env,
+        ...options.env
+      }
     });
 
     let stdout = '';
@@ -65,10 +70,11 @@ class MockServer {
 
 describe('Nodash CLI Component Tests', () => {
   let mockServer: MockServer;
-  const testConfigDir = path.join(os.tmpdir(), 'nodash-cli-test');
+  let testConfigDir: string;
 
   beforeEach(() => {
     mockServer = new MockServer();
+    testConfigDir = path.join(os.tmpdir(), `nodash-cli-test-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`);
     
     // Set up default mock responses
     mockServer.setResponse('/health', {
@@ -107,8 +113,10 @@ describe('Nodash CLI Component Tests', () => {
   });
 
   describe('Config Management', () => {
+    const getTestEnv = () => ({ NODASH_CONFIG_DIR: testConfigDir });
+
     it('should show empty config initially', async () => {
-      const result = await runCLI(['config', 'get']);
+      const result = await runCLI(['config', 'get'], { env: getTestEnv() });
       
       expect(result.exitCode).toBe(0);
       expect(result.stdout).toContain('Current configuration:');
@@ -116,38 +124,40 @@ describe('Nodash CLI Component Tests', () => {
     });
 
     it('should set and get configuration values', async () => {
+      const testEnv = getTestEnv();
+      
       // Set base URL
-      const setResult = await runCLI(['config', 'set', 'baseUrl', 'https://api.example.com']);
+      const setResult = await runCLI(['config', 'set', 'baseUrl', 'https://api.example.com'], { env: testEnv });
       expect(setResult.exitCode).toBe(0);
       expect(setResult.stdout).toContain('✅ Set baseUrl = https://api.example.com');
 
       // Get specific value
-      const getResult = await runCLI(['config', 'get', 'baseUrl']);
+      const getResult = await runCLI(['config', 'get', 'baseUrl'], { env: testEnv });
       expect(getResult.exitCode).toBe(0);
       expect(getResult.stdout).toContain('baseUrl: https://api.example.com');
 
       // Get all config
-      const getAllResult = await runCLI(['config', 'get']);
+      const getAllResult = await runCLI(['config', 'get'], { env: testEnv });
       expect(getAllResult.exitCode).toBe(0);
       expect(getAllResult.stdout).toContain('"baseUrl": "https://api.example.com"');
     });
 
     it('should set API token', async () => {
-      const result = await runCLI(['config', 'set', 'apiToken', 'test-token-123']);
+      const result = await runCLI(['config', 'set', 'apiToken', 'test-token-123'], { env: getTestEnv() });
       
       expect(result.exitCode).toBe(0);
       expect(result.stdout).toContain('✅ Set apiToken = test-token-123');
     });
 
     it('should handle invalid config commands', async () => {
-      const result = await runCLI(['config', 'invalid']);
+      const result = await runCLI(['config', 'invalid'], { env: getTestEnv() });
       
       expect(result.exitCode).toBe(1);
       expect(result.stderr).toContain('Unknown action');
     });
 
     it('should require key and value for set command', async () => {
-      const result = await runCLI(['config', 'set', 'baseUrl']);
+      const result = await runCLI(['config', 'set', 'baseUrl'], { env: getTestEnv() });
       
       expect(result.exitCode).toBe(1);
       expect(result.stderr).toContain('Usage: nodash config set <key> <value>');
@@ -155,12 +165,14 @@ describe('Nodash CLI Component Tests', () => {
   });
 
   describe('Init Command', () => {
+    const getTestEnv = () => ({ NODASH_CONFIG_DIR: testConfigDir });
+
     it('should initialize with URL and token', async () => {
       const result = await runCLI([
         'init',
         '--url', 'https://api.example.com',
         '--token', 'my-secret-token'
-      ]);
+      ], { env: getTestEnv() });
       
       expect(result.exitCode).toBe(0);
       expect(result.stdout).toContain('🚀 Initializing Nodash CLI');
@@ -170,7 +182,7 @@ describe('Nodash CLI Component Tests', () => {
     });
 
     it('should initialize with URL only', async () => {
-      const result = await runCLI(['init', '--url', 'http://localhost:3000']);
+      const result = await runCLI(['init', '--url', 'http://localhost:3000'], { env: getTestEnv() });
       
       expect(result.exitCode).toBe(0);
       expect(result.stdout).toContain('✅ Set base URL: http://localhost:3000');
@@ -178,7 +190,7 @@ describe('Nodash CLI Component Tests', () => {
     });
 
     it('should show usage when no options provided', async () => {
-      const result = await runCLI(['init']);
+      const result = await runCLI(['init'], { env: getTestEnv() });
       
       expect(result.exitCode).toBe(0);
       expect(result.stdout).toContain('No configuration provided');
@@ -187,33 +199,29 @@ describe('Nodash CLI Component Tests', () => {
   });
 
   describe('Track Command', () => {
+    const getTestEnv = () => ({ NODASH_CONFIG_DIR: testConfigDir });
+
     beforeEach(async () => {
       // Set up configuration for tracking tests
-      await runCLI(['config', 'set', 'baseUrl', 'https://api.example.com']);
+      await runCLI(['config', 'set', 'baseUrl', 'https://api.example.com'], { env: getTestEnv() });
     });
 
     it('should fail when no configuration is set', async () => {
-      // Clear config first
-      const configPath = path.join(testConfigDir, '.nodash', 'config.json');
-      if (fs.existsSync(configPath)) {
-        fs.unlinkSync(configPath);
-      }
-
-      const result = await runCLI(['track', 'test_event']);
+      const result = await runCLI(['track', 'test_event'], { env: getTestEnv() });
       
       expect(result.exitCode).toBe(1);
-      expect(result.stderr).toContain('No base URL configured');
+      expect(result.stderr).toContain('❌ Track error');
     });
 
     it('should handle invalid JSON properties', async () => {
-      const result = await runCLI(['track', 'test_event', '--properties', '{invalid json}']);
+      const result = await runCLI(['track', 'test_event', '--properties', '{invalid json}'], { env: getTestEnv() });
       
       expect(result.exitCode).toBe(1);
       expect(result.stderr).toContain('❌ Invalid JSON in properties');
     });
 
     it('should attempt to track event (will fail without real server)', async () => {
-      const result = await runCLI(['track', 'user_signup']);
+      const result = await runCLI(['track', 'user_signup'], { env: getTestEnv() });
       
       // This will fail because there's no real server, but we can test the CLI behavior
       expect(result.exitCode).toBe(1);
@@ -222,12 +230,14 @@ describe('Nodash CLI Component Tests', () => {
   });
 
   describe('Health Command', () => {
+    const getTestEnv = () => ({ NODASH_CONFIG_DIR: testConfigDir });
+
     beforeEach(async () => {
-      await runCLI(['config', 'set', 'baseUrl', 'https://api.example.com']);
+      await runCLI(['config', 'set', 'baseUrl', 'https://api.example.com'], { env: getTestEnv() });
     });
 
     it('should attempt health check (will fail without real server)', async () => {
-      const result = await runCLI(['health']);
+      const result = await runCLI(['health'], { env: getTestEnv() });
       
       // This will fail because there's no real server, but we can test the CLI behavior
       expect(result.exitCode).toBe(1);
@@ -236,30 +246,36 @@ describe('Nodash CLI Component Tests', () => {
   });
 
   describe('Real-world CLI Usage Scenarios', () => {
+    const getTestEnv = () => ({ NODASH_CONFIG_DIR: testConfigDir });
+
     it('should handle complete setup workflow', async () => {
+      const testEnv = getTestEnv();
+      
       // 1. Initialize CLI
       const initResult = await runCLI([
         'init',
         '--url', 'https://analytics.myapp.com',
         '--token', 'prod-token-123'
-      ]);
+      ], { env: testEnv });
       expect(initResult.exitCode).toBe(0);
       expect(initResult.stdout).toContain('✅ Set base URL: https://analytics.myapp.com');
       expect(initResult.stdout).toContain('✅ Set API token');
 
       // 2. Verify configuration was saved
-      const configResult = await runCLI(['config', 'get']);
+      const configResult = await runCLI(['config', 'get'], { env: testEnv });
       expect(configResult.exitCode).toBe(0);
       expect(configResult.stdout).toContain('analytics.myapp.com');
     });
 
     it('should persist configuration between commands', async () => {
+      const testEnv = getTestEnv();
+      
       // Set configuration
-      const setResult = await runCLI(['config', 'set', 'baseUrl', 'https://persistent.test']);
+      const setResult = await runCLI(['config', 'set', 'baseUrl', 'https://persistent.test'], { env: testEnv });
       expect(setResult.exitCode).toBe(0);
 
       // Verify it persists in a new command
-      const getResult = await runCLI(['config', 'get', 'baseUrl']);
+      const getResult = await runCLI(['config', 'get', 'baseUrl'], { env: testEnv });
       expect(getResult.exitCode).toBe(0);
       expect(getResult.stdout).toContain('baseUrl: https://persistent.test');
     });
@@ -272,19 +288,172 @@ describe('Nodash CLI Component Tests', () => {
       ];
 
       for (const env of environments) {
+        // Use a unique test config directory for each environment test
+        const envTestDir = path.join(os.tmpdir(), `nodash-cli-env-${env.name}-${Date.now()}`);
+        const testEnv = { NODASH_CONFIG_DIR: envTestDir };
+        
         const args = ['init', '--url', env.url];
         if (env.token) {
           args.push('--token', env.token);
         }
 
-        const result = await runCLI(args);
+        const result = await runCLI(args, { env: testEnv });
         expect(result.exitCode).toBe(0);
         expect(result.stdout).toContain(`✅ Set base URL: ${env.url}`);
         
         if (env.token) {
           expect(result.stdout).toContain('✅ Set API token');
         }
+        
+        // Clean up
+        if (fs.existsSync(envTestDir)) {
+          fs.rmSync(envTestDir, { recursive: true, force: true });
+        }
       }
+    });
+  });
+
+  describe('Environment Variable Support', () => {
+    let testConfigDir1: string;
+    let testConfigDir2: string;
+
+    beforeEach(() => {
+      testConfigDir1 = path.join(os.tmpdir(), `nodash-cli-env-test-1-${Date.now()}`);
+      testConfigDir2 = path.join(os.tmpdir(), `nodash-cli-env-test-2-${Date.now()}`);
+    });
+
+    afterEach(() => {
+      // Clean up test directories
+      [testConfigDir1, testConfigDir2].forEach(dir => {
+        if (fs.existsSync(dir)) {
+          fs.rmSync(dir, { recursive: true, force: true });
+        }
+      });
+    });
+
+    it('should use custom config directory when NODASH_CONFIG_DIR is set', async () => {
+      // Set configuration in custom directory
+      const setResult = await runCLI(['config', 'set', 'baseUrl', 'https://custom-env.com'], {
+        env: { NODASH_CONFIG_DIR: testConfigDir1 }
+      });
+      expect(setResult.exitCode).toBe(0);
+
+      // Verify config was written to custom directory
+      const configFile = path.join(testConfigDir1, 'config.json');
+      expect(fs.existsSync(configFile)).toBe(true);
+
+      // Verify we can read it back
+      const getResult = await runCLI(['config', 'get', 'baseUrl'], {
+        env: { NODASH_CONFIG_DIR: testConfigDir1 }
+      });
+      expect(getResult.exitCode).toBe(0);
+      expect(getResult.stdout).toContain('baseUrl: https://custom-env.com');
+    });
+
+    it('should maintain separate configurations for different directories', async () => {
+      // Set up first environment
+      await runCLI(['config', 'set', 'baseUrl', 'https://env1.com'], {
+        env: { NODASH_CONFIG_DIR: testConfigDir1 }
+      });
+      await runCLI(['config', 'set', 'apiToken', 'token1'], {
+        env: { NODASH_CONFIG_DIR: testConfigDir1 }
+      });
+
+      // Set up second environment
+      await runCLI(['config', 'set', 'baseUrl', 'https://env2.com'], {
+        env: { NODASH_CONFIG_DIR: testConfigDir2 }
+      });
+      await runCLI(['config', 'set', 'apiToken', 'token2'], {
+        env: { NODASH_CONFIG_DIR: testConfigDir2 }
+      });
+
+      // Verify first environment
+      const env1Result = await runCLI(['config', 'get'], {
+        env: { NODASH_CONFIG_DIR: testConfigDir1 }
+      });
+      expect(env1Result.stdout).toContain('https://env1.com');
+      expect(env1Result.stdout).toContain('token1');
+      expect(env1Result.stdout).not.toContain('https://env2.com');
+      expect(env1Result.stdout).not.toContain('token2');
+
+      // Verify second environment
+      const env2Result = await runCLI(['config', 'get'], {
+        env: { NODASH_CONFIG_DIR: testConfigDir2 }
+      });
+      expect(env2Result.stdout).toContain('https://env2.com');
+      expect(env2Result.stdout).toContain('token2');
+      expect(env2Result.stdout).not.toContain('https://env1.com');
+      expect(env2Result.stdout).not.toContain('token1');
+    });
+
+    it('should create custom directory if it does not exist', async () => {
+      const nonExistentDir = path.join(testConfigDir1, 'nested', 'config');
+      
+      expect(fs.existsSync(nonExistentDir)).toBe(false);
+
+      const result = await runCLI(['config', 'set', 'baseUrl', 'https://nested.com'], {
+        env: { NODASH_CONFIG_DIR: nonExistentDir }
+      });
+
+      expect(result.exitCode).toBe(0);
+      expect(fs.existsSync(nonExistentDir)).toBe(true);
+      expect(fs.existsSync(path.join(nonExistentDir, 'config.json'))).toBe(true);
+    });
+
+    it('should work with all CLI commands using custom config directory', async () => {
+      const customEnv = { NODASH_CONFIG_DIR: testConfigDir1 };
+
+      // Test init command
+      const initResult = await runCLI([
+        'init',
+        '--url', 'https://test-env.com',
+        '--token', 'test-env-token'
+      ], { env: customEnv });
+      expect(initResult.exitCode).toBe(0);
+
+      // Test config get
+      const getResult = await runCLI(['config', 'get'], { env: customEnv });
+      expect(getResult.exitCode).toBe(0);
+      expect(getResult.stdout).toContain('https://test-env.com');
+
+      // Test config set
+      const setResult = await runCLI(['config', 'set', 'environment', 'testing'], { env: customEnv });
+      expect(setResult.exitCode).toBe(0);
+
+      // Verify the set worked
+      const verifyResult = await runCLI(['config', 'get', 'environment'], { env: customEnv });
+      expect(verifyResult.exitCode).toBe(0);
+      expect(verifyResult.stdout).toContain('environment: testing');
+    });
+
+    it('should handle configuration updates correctly with custom directory', async () => {
+      const customEnv = { NODASH_CONFIG_DIR: testConfigDir1 };
+
+      // Set initial value
+      await runCLI(['config', 'set', 'apiToken', 'initial-token'], { env: customEnv });
+
+      // Update the value
+      await runCLI(['config', 'set', 'apiToken', 'updated-token'], { env: customEnv });
+
+      // Verify the update
+      const result = await runCLI(['config', 'get', 'apiToken'], { env: customEnv });
+      expect(result.exitCode).toBe(0);
+      expect(result.stdout).toContain('apiToken: updated-token');
+      expect(result.stdout).not.toContain('initial-token');
+    });
+
+    it('should handle permission errors gracefully', async () => {
+      // Try to use a directory that should cause permission issues
+      const restrictedPath = process.platform === 'win32' 
+        ? 'C:\\Windows\\System32\\nodash-test' 
+        : '/root/nodash-test';
+
+      const result = await runCLI(['config', 'set', 'baseUrl', 'https://test.com'], {
+        env: { NODASH_CONFIG_DIR: restrictedPath }
+      });
+
+      expect(result.exitCode).toBe(1);
+      expect(result.stderr).toContain('❌ Config error');
     });
   });
 

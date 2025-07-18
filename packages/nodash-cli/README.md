@@ -209,7 +209,7 @@ $ nodash health
 
 ## Configuration File
 
-The CLI stores configuration in `~/.nodash/config.json`:
+The CLI stores configuration in `~/.nodash/config.json` by default:
 
 ```json
 {
@@ -220,6 +220,29 @@ The CLI stores configuration in `~/.nodash/config.json`:
 ```
 
 You can edit this file directly if you prefer, but using `nodash config` is safer.
+
+### Custom Configuration Directory
+
+You can customize where the CLI stores its configuration using the `NODASH_CONFIG_DIR` environment variable:
+
+```bash
+# Use a project-specific configuration directory
+export NODASH_CONFIG_DIR="./config/nodash"
+nodash init --url https://project-api.com
+
+# Use different configurations for different environments
+export NODASH_CONFIG_DIR="~/.config/nodash/staging"
+nodash config set baseUrl https://staging-api.com
+
+export NODASH_CONFIG_DIR="~/.config/nodash/production"
+nodash config set baseUrl https://api.com
+```
+
+This is particularly useful for:
+- **Testing**: Isolate test configurations from your personal settings
+- **Multi-project workflows**: Keep separate configurations for different projects
+- **CI/CD environments**: Use containerized or temporary configuration directories
+- **Team collaboration**: Share project-specific configurations via version control
 
 ## Integration Examples
 
@@ -277,6 +300,53 @@ else
 fi
 ```
 
+### Testing with Configuration Isolation
+
+```bash
+#!/bin/bash
+# Test script with isolated configuration
+
+# Set up test-specific configuration directory
+export NODASH_CONFIG_DIR="./test-config"
+
+# Initialize test configuration
+nodash init --url http://localhost:3001 --token test-token
+
+# Run your tests
+npm test
+
+# Configuration is isolated - won't affect your personal settings
+# Clean up test config if needed
+rm -rf ./test-config
+```
+
+### Multi-Environment CI/CD
+
+```bash
+#!/bin/bash
+# CI/CD script supporting multiple environments
+
+case "$ENVIRONMENT" in
+  "staging")
+    export NODASH_CONFIG_DIR="/tmp/nodash-staging"
+    nodash init --url https://staging-api.example.com --token "$STAGING_TOKEN"
+    ;;
+  "production")
+    export NODASH_CONFIG_DIR="/tmp/nodash-production"
+    nodash init --url https://api.example.com --token "$PRODUCTION_TOKEN"
+    ;;
+  *)
+    export NODASH_CONFIG_DIR="/tmp/nodash-dev"
+    nodash init --url http://localhost:3000
+    ;;
+esac
+
+# Deploy and track
+nodash track "deployment_started" --properties "{\"environment\": \"$ENVIRONMENT\"}"
+# ... deployment logic ...
+nodash track "deployment_completed" --properties "{\"environment\": \"$ENVIRONMENT\"}"
+```
+
 ## Troubleshooting
 
 **Q: Command not found: nodash**
@@ -293,6 +363,12 @@ A: Check if your server is running and the URL is correct. Try `nodash config ge
 
 **Q: Authentication errors**
 A: Verify your API token with `nodash config get apiToken` or set a new one
+
+**Q: Configuration not persisting between commands**
+A: Check if you're using `NODASH_CONFIG_DIR` consistently. If set, make sure it points to the same directory for all commands.
+
+**Q: "Failed to create configuration directory" error**
+A: Check permissions for the configuration directory. If using `NODASH_CONFIG_DIR`, ensure the path is writable.
 
 ## Advanced Usage
 

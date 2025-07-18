@@ -8,20 +8,31 @@ export interface CliConfig {
   environment?: string;
 }
 
-const CONFIG_DIR = path.join(os.homedir(), '.nodash');
-const CONFIG_FILE = path.join(CONFIG_DIR, 'config.json');
-
 export class ConfigManager {
+  private getConfigDir(): string {
+    return process.env.NODASH_CONFIG_DIR || path.join(os.homedir(), '.nodash');
+  }
+
+  private getConfigFile(): string {
+    return path.join(this.getConfigDir(), 'config.json');
+  }
+
   private ensureConfigDir(): void {
-    if (!fs.existsSync(CONFIG_DIR)) {
-      fs.mkdirSync(CONFIG_DIR, { recursive: true });
+    const configDir = this.getConfigDir();
+    try {
+      if (!fs.existsSync(configDir)) {
+        fs.mkdirSync(configDir, { recursive: true, mode: 0o700 });
+      }
+    } catch (error) {
+      throw new Error(`Failed to create configuration directory '${configDir}': ${error instanceof Error ? error.message : error}`);
     }
   }
 
   getConfig(): CliConfig {
     try {
-      if (fs.existsSync(CONFIG_FILE)) {
-        const content = fs.readFileSync(CONFIG_FILE, 'utf8');
+      const configFile = this.getConfigFile();
+      if (fs.existsSync(configFile)) {
+        const content = fs.readFileSync(configFile, 'utf8');
         return JSON.parse(content);
       }
     } catch (error) {
@@ -31,10 +42,16 @@ export class ConfigManager {
   }
 
   setConfig(config: Partial<CliConfig>): void {
-    this.ensureConfigDir();
-    const currentConfig = this.getConfig();
-    const newConfig = { ...currentConfig, ...config };
-    fs.writeFileSync(CONFIG_FILE, JSON.stringify(newConfig, null, 2));
+    try {
+      this.ensureConfigDir();
+      const currentConfig = this.getConfig();
+      const newConfig = { ...currentConfig, ...config };
+      const configFile = this.getConfigFile();
+      fs.writeFileSync(configFile, JSON.stringify(newConfig, null, 2), { mode: 0o600 });
+    } catch (error) {
+      const configDir = this.getConfigDir();
+      throw new Error(`Failed to write configuration to '${configDir}': ${error instanceof Error ? error.message : error}`);
+    }
   }
 
   getConfigValue(key: keyof CliConfig): string | undefined {
