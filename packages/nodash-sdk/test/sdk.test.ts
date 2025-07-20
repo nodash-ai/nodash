@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { NodashSDK } from '../dist/index';
+import { EventSnapshot } from '../dist/types';
 
 // Mock server responses
 const mockHealthResponse = {
@@ -277,6 +278,220 @@ describe('NodashSDK Component Tests', () => {
           })
         );
       }
+    });
+  });
+
+  describe('Event Recording', () => {
+    describe('startRecording() and stopRecording()', () => {
+      it('should start and stop recording', () => {
+        sdk.startRecording();
+        const snapshot = sdk.stopRecording();
+        
+        expect(snapshot).toEqual({
+          events: [],
+          recordedAt: expect.any(Date),
+          totalEvents: 0
+        });
+      });
+
+      it('should start recording with custom max events', () => {
+        sdk.startRecording(50);
+        // Recording should be active but we can't directly test the limit without internal access
+        const snapshot = sdk.stopRecording();
+        expect(snapshot.totalEvents).toBe(0);
+      });
+    });
+
+    describe('track/identify behavior during recording', () => {
+      it('should capture track events during recording instead of sending HTTP', async () => {
+        sdk.startRecording();
+        
+        await sdk.track('test_event', { prop: 'value' });
+        
+        // No HTTP request should be made
+        expect(mockFetch).not.toHaveBeenCalled();
+        
+        const snapshot = sdk.stopRecording();
+        expect(snapshot.events).toHaveLength(1);
+        expect(snapshot.events[0].type).toBe('track');
+        expect(snapshot.events[0].data).toEqual({
+          event: 'test_event',
+          properties: { prop: 'value' },
+          timestamp: expect.any(Date)
+        });
+      });
+
+      it('should capture identify events during recording instead of sending HTTP', async () => {
+        sdk.startRecording();
+        
+        await sdk.identify('user-123', { name: 'John' });
+        
+        // No HTTP request should be made
+        expect(mockFetch).not.toHaveBeenCalled();
+        
+        const snapshot = sdk.stopRecording();
+        expect(snapshot.events).toHaveLength(1);
+        expect(snapshot.events[0].type).toBe('identify');
+        expect(snapshot.events[0].data).toEqual({
+          userId: 'user-123',
+          traits: { name: 'John' },
+          timestamp: expect.any(Date)
+        });
+      });
+
+      it('should capture multiple events during recording', async () => {
+        sdk.startRecording();
+        
+        await sdk.track('event1');
+        await sdk.identify('user-1');
+        await sdk.track('event2', { prop: 'test' });
+        
+        expect(mockFetch).not.toHaveBeenCalled();
+        
+        const snapshot = sdk.stopRecording();
+        expect(snapshot.events).toHaveLength(3);
+        expect(snapshot.events[0].type).toBe('track');
+        expect(snapshot.events[1].type).toBe('identify');
+        expect(snapshot.events[2].type).toBe('track');
+      });
+
+      it('should resume normal HTTP behavior after stopping recording', async () => {
+        mockFetch.mockResolvedValueOnce({
+          ok: true,
+          json: async () => mockSuccessResponse,
+        } as Response);
+
+        sdk.startRecording();
+        await sdk.track('recorded_event');
+        sdk.stopRecording();
+        
+        // This should make HTTP request
+        await sdk.track('normal_event');
+        
+        expect(mockFetch).toHaveBeenCalledTimes(1);
+      });
+    });
+
+    describe('replay()', () => {
+      it('should replay events with dry-run mode', async () => {
+        const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+        
+        const snapshot: EventSnapshot = {
+          events: [
+            {
+              type: 'track',
+              data: { event: 'test_event', properties: { prop: 'value' }, timestamp: new Date() },
+              timestamp: new Date()
+            },
+            {
+              type: 'identify',
+              data: { userId: 'user-123', traits: { name: 'John' }, timestamp: new Date() },
+              timestamp: new Date()
+            }
+          ],
+          recordedAt: new Date(),
+          totalEvents: 2
+        };
+
+        await sdk.replay(snapshot, { dryRun: true });
+
+        expect(mockFetch).not.toHaveBeenCalled();
+        expect(consoleSpy).toHaveBeenCalledWith('[DRY RUN] track:', snapshot.events[0].data);
+        expect(consoleSpy).toHaveBeenCalledWith('[DRY RUN] identify:', snapshot.events[1].data);
+        
+        consoleSpy.mockRestore();
+      });
+
+      it('should replay events to default endpoint', async () => {
+        mockFetch
+          .mockResolvedValueOnce({ ok: true, json: async () => mockSuccessResponse } as Response)
+          .mockResolvedValueOnce({ ok: true, json: async () => mockSuccessResponse } as Response);
+
+        const snapshot: EventSnapshot = {
+          events: [
+            {
+              type: 'track',
+              data: { event: 'test_event', properties: {}, timestamp: new Date() },
+              timestamp: new Date()
+            },
+            {
+              type: 'identify',
+              data: { userId: 'user-123', traits: {}, timestamp: new Date() },
+              timestamp: new Date()
+            }
+          ],
+          recordedAt: new Date(),
+          totalEvents: 2
+        };
+
+        await sdk.replay(snapshot);
+
+        expect(mockFetch).toHaveBeenCalledTimes(2);
+        expect(mockFetch).toHaveBeenCalledWith(
+          'https://api.example.com/track',
+          expect.objectContaining({ method: 'POST' })
+        );
+        expect(mockFetch).toHaveBeenCalledWith(
+          'https://api.example.com/identify',
+          expect.objectContaining({ method: 'POST' })
+        );
+      });
+
+      it('should replay events to custom URL', async () => {
+        mockFetch
+          .mockResolvedValueOnce({ ok: true, json: async () => mockSuccessResponse } as Response);
+
+        const snapshot: EventSnapshot = {
+          events: [
+            {
+              type: 'track',
+              data: { event: 'test_event', properties: {}, timestamp: new Date() },
+              timestamp: new Date()
+            }
+          ],
+          recordedAt: new Date(),
+          totalEvents: 1
+        };
+
+        await sdk.replay(snapshot, { url: 'https://custom.example.com' });
+
+        expect(mockFetch).toHaveBeenCalledWith(
+          'https://custom.example.com/track',
+          expect.objectContaining({ method: 'POST' })
+        );
+      });
+
+      it('should continue processing events when errors occur', async () => {
+        const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+        
+        mockFetch
+          .mockRejectedValueOnce(new Error('Network error'))
+          .mockResolvedValueOnce({ ok: true, json: async () => mockSuccessResponse } as Response);
+
+        const snapshot: EventSnapshot = {
+          events: [
+            {
+              type: 'track',
+              data: { event: 'failing_event', properties: {}, timestamp: new Date() },
+              timestamp: new Date()
+            },
+            {
+              type: 'track',
+              data: { event: 'success_event', properties: {}, timestamp: new Date() },
+              timestamp: new Date()
+            }
+          ],
+          recordedAt: new Date(),
+          totalEvents: 2
+        };
+
+        await sdk.replay(snapshot);
+
+        expect(mockFetch).toHaveBeenCalledTimes(2);
+        expect(consoleWarnSpy).toHaveBeenCalledWith('Replay completed with 1 errors');
+        
+        consoleWarnSpy.mockRestore();
+      });
     });
   });
 });

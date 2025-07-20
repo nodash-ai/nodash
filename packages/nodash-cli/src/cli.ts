@@ -140,4 +140,107 @@ program
     }
   });
 
+// Record command group
+const recordCommand = program
+  .command('record')
+  .description('Record events for testing and debugging');
+
+recordCommand
+  .command('start')
+  .description('Start recording events')
+  .option('--max-events <number>', 'Maximum number of events to record (default: 100)', '100')
+  .action(async (options: { maxEvents: string }) => {
+    try {
+      const maxEvents = parseInt(options.maxEvents, 10);
+      if (isNaN(maxEvents) || maxEvents <= 0) {
+        console.error('❌ Invalid max-events value. Must be a positive number.');
+        process.exit(1);
+      }
+
+      sdkWrapper.startRecording(maxEvents);
+      console.log(`📹 Started recording events (max: ${maxEvents})`);
+    } catch (error) {
+      console.error('❌ Record start error:', error instanceof Error ? error.message : error);
+      process.exit(1);
+    }
+  });
+
+recordCommand
+  .command('stop')
+  .description('Stop recording and output session data')
+  .option('--out <file>', 'Output file path (default: stdout)')
+  .action(async (options: { out?: string }) => {
+    try {
+      const snapshot = sdkWrapper.stopRecording();
+      const output = JSON.stringify(snapshot, null, 2);
+
+      if (options.out) {
+        const fs = await import('fs');
+        fs.writeFileSync(options.out, output);
+        console.log(`✅ Session saved to ${options.out}`);
+        console.log(`📊 Recorded ${snapshot.totalEvents} events`);
+      } else {
+        console.log(output);
+      }
+    } catch (error) {
+      console.error('❌ Record stop error:', error instanceof Error ? error.message : error);
+      process.exit(1);
+    }
+  });
+
+// Replay command
+program
+  .command('replay')
+  .description('Replay events from a saved session')
+  .argument('<file>', 'Path to session JSON file')
+  .option('--url <url>', 'Override base URL for replay')
+  .option('--dry-run', 'Log events without sending HTTP requests')
+  .action(async (file: string, options: { url?: string; dryRun?: boolean }) => {
+    try {
+      const fs = await import('fs');
+      
+      // Check if file exists
+      if (!fs.existsSync(file)) {
+        console.error(`❌ File not found: ${file}`);
+        process.exit(1);
+      }
+
+      // Read and parse JSON file
+      let snapshot;
+      try {
+        const fileContent = fs.readFileSync(file, 'utf8');
+        snapshot = JSON.parse(fileContent);
+      } catch (error) {
+        console.error(`❌ Invalid JSON file: ${error instanceof Error ? error.message : error}`);
+        process.exit(1);
+      }
+
+      // Validate snapshot structure
+      if (!snapshot.events || !Array.isArray(snapshot.events)) {
+        console.error('❌ Invalid session file format: missing events array');
+        process.exit(1);
+      }
+
+      console.log(`🔄 Replaying ${snapshot.totalEvents || snapshot.events.length} events...`);
+      
+      if (options.dryRun) {
+        console.log('🧪 Dry run mode - no HTTP requests will be sent');
+      }
+      
+      if (options.url) {
+        console.log(`🎯 Using custom URL: ${options.url}`);
+      }
+
+      await sdkWrapper.replay(snapshot, {
+        url: options.url,
+        dryRun: options.dryRun
+      });
+
+      console.log('✅ Replay completed successfully');
+    } catch (error) {
+      console.error('❌ Replay error:', error instanceof Error ? error.message : error);
+      process.exit(1);
+    }
+  });
+
 program.parse();

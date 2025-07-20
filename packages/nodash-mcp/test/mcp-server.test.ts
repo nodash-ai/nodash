@@ -142,6 +142,8 @@ describe('Nodash MCP Server Component Tests', () => {
             expect(toolNames).toContain('setup_project');
             expect(toolNames).toContain('run_cli_command');
             expect(toolNames).toContain('get_documentation');
+            expect(toolNames).toContain('capture_session');
+            expect(toolNames).toContain('replay_session');
         });
 
         it('should provide detailed tool schemas', async () => {
@@ -163,6 +165,18 @@ describe('Nodash MCP Server Component Tests', () => {
             const docTool = tools.find((tool: any) => tool.name === 'get_documentation');
             expect(docTool).toBeDefined();
             expect(docTool.inputSchema.properties.component.enum).toEqual(['sdk', 'cli']);
+
+            const captureTool = tools.find((tool: any) => tool.name === 'capture_session');
+            expect(captureTool).toBeDefined();
+            expect(captureTool.description).toContain('Start or stop event recording session');
+            expect(captureTool.inputSchema.properties.action.enum).toEqual(['start', 'stop']);
+            expect(captureTool.inputSchema.required).toContain('action');
+
+            const replayTool = tools.find((tool: any) => tool.name === 'replay_session');
+            expect(replayTool).toBeDefined();
+            expect(replayTool.description).toContain('Replay events from a saved session file');
+            expect(replayTool.inputSchema.properties.filePath).toBeDefined();
+            expect(replayTool.inputSchema.required).toContain('filePath');
         });
     });
 
@@ -346,6 +360,116 @@ describe('Nodash MCP Server Component Tests', () => {
 
             expect(response.error).toBeDefined();
             expect(response.error.message).toContain('Unknown tool');
+        });
+    });
+
+    describe('Event Recording Tools', () => {
+        it('should attempt capture_session start', async () => {
+            const response = await client.sendRequest('tools/call', {
+                name: 'capture_session',
+                arguments: { action: 'start' }
+            });
+
+            expect(response.result).toBeDefined();
+            expect(response.result.content).toBeInstanceOf(Array);
+            expect(response.result.content.length).toBe(1);
+
+            // Validate MCP protocol format
+            const content = response.result.content[0];
+            expect(content.type).toBe('text');
+            expect(content.text).toBeDefined();
+
+            // Parse the JSON content to validate structure
+            const result = JSON.parse(content.text);
+            expect(result.success).toBeDefined();
+            expect(result.output).toBeDefined();
+            expect(result.exitCode).toBeDefined();
+            expect(result.command).toBeDefined();
+        });
+
+        it('should attempt capture_session start with maxEvents', async () => {
+            const response = await client.sendRequest('tools/call', {
+                name: 'capture_session',
+                arguments: { action: 'start', maxEvents: 50 }
+            });
+
+            expect(response.result).toBeDefined();
+            const content = response.result.content[0];
+            const result = JSON.parse(content.text);
+            expect(result.command).toContain('--max-events 50');
+        });
+
+        it('should attempt capture_session stop', async () => {
+            const response = await client.sendRequest('tools/call', {
+                name: 'capture_session',
+                arguments: { action: 'stop' }
+            });
+
+            expect(response.result).toBeDefined();
+            expect(response.result.content).toBeInstanceOf(Array);
+            expect(response.result.content.length).toBe(1);
+
+            // Validate MCP protocol format
+            const content = response.result.content[0];
+            expect(content.type).toBe('text');
+            expect(content.text).toBeDefined();
+
+            // Parse the JSON content to validate structure
+            const result = JSON.parse(content.text);
+            expect(result.success).toBeDefined();
+            expect(result.command).toContain('record stop');
+        });
+
+        it('should handle invalid capture_session action', async () => {
+            const response = await client.sendRequest('tools/call', {
+                name: 'capture_session',
+                arguments: { action: 'invalid' }
+            });
+
+            expect(response.result).toBeDefined();
+            const content = response.result.content[0];
+            const result = JSON.parse(content.text);
+            expect(result.success).toBe(false);
+            expect(result.error).toContain('Invalid action');
+        });
+
+        it('should attempt replay_session', async () => {
+            const response = await client.sendRequest('tools/call', {
+                name: 'replay_session',
+                arguments: { filePath: '/tmp/test-session.json' }
+            });
+
+            expect(response.result).toBeDefined();
+            expect(response.result.content).toBeInstanceOf(Array);
+            expect(response.result.content.length).toBe(1);
+
+            // Validate MCP protocol format
+            const content = response.result.content[0];
+            expect(content.type).toBe('text');
+            expect(content.text).toBeDefined();
+
+            // Parse the JSON content to validate structure
+            const result = JSON.parse(content.text);
+            expect(result.success).toBeDefined();
+            expect(result.command).toContain('replay');
+            expect(result.command).toContain('/tmp/test-session.json');
+        });
+
+        it('should attempt replay_session with options', async () => {
+            const response = await client.sendRequest('tools/call', {
+                name: 'replay_session',
+                arguments: {
+                    filePath: '/tmp/test-session.json',
+                    url: 'https://custom.example.com',
+                    dryRun: true
+                }
+            });
+
+            expect(response.result).toBeDefined();
+            const content = response.result.content[0];
+            const result = JSON.parse(content.text);
+            expect(result.command).toContain('--url https://custom.example.com');
+            expect(result.command).toContain('--dry-run');
         });
     });
 

@@ -457,6 +457,139 @@ describe('Nodash CLI Component Tests', () => {
     });
   });
 
+  describe('Event Recording E2E', () => {
+    const getTestEnv = () => ({ NODASH_CONFIG_DIR: testConfigDir });
+
+    beforeEach(async () => {
+      // Set up configuration for recording tests
+      await runCLI(['config', 'set', 'baseUrl', 'https://api.example.com'], { env: getTestEnv() });
+    });
+
+    it('should complete full recording session with temp file', async () => {
+      const testEnv = getTestEnv();
+      const tempFile = path.join(os.tmpdir(), `nodash-session-${Date.now()}.json`);
+
+      try {
+        // Start recording
+        const startResult = await runCLI(['record', 'start', '--max-events', '5'], { env: testEnv });
+        expect(startResult.exitCode).toBe(0);
+        expect(startResult.stdout).toContain('📹 Started recording events (max: 5)');
+
+        // Stop recording and save to file
+        const stopResult = await runCLI(['record', 'stop', '--out', tempFile], { env: testEnv });
+        expect(stopResult.exitCode).toBe(0);
+        expect(stopResult.stdout).toContain(`✅ Session saved to ${tempFile}`);
+        expect(stopResult.stdout).toContain('📊 Recorded 0 events');
+
+        // Verify file was created and has valid JSON
+        expect(fs.existsSync(tempFile)).toBe(true);
+        const sessionData = JSON.parse(fs.readFileSync(tempFile, 'utf8'));
+        expect(sessionData).toHaveProperty('events');
+        expect(sessionData).toHaveProperty('recordedAt');
+        expect(sessionData).toHaveProperty('totalEvents');
+        expect(Array.isArray(sessionData.events)).toBe(true);
+        expect(sessionData.totalEvents).toBe(0);
+
+        // Test replay with dry-run
+        const replayResult = await runCLI(['replay', tempFile, '--dry-run'], { env: testEnv });
+        expect(replayResult.exitCode).toBe(0);
+        expect(replayResult.stdout).toContain('🔄 Replaying 0 events');
+        expect(replayResult.stdout).toContain('🧪 Dry run mode');
+        expect(replayResult.stdout).toContain('✅ Replay completed successfully');
+
+      } finally {
+        // Clean up temp file
+        if (fs.existsSync(tempFile)) {
+          fs.unlinkSync(tempFile);
+        }
+      }
+    });
+
+    it('should handle recording commands help', async () => {
+      const recordHelpResult = await runCLI(['record', '--help']);
+      expect(recordHelpResult.exitCode).toBe(0);
+      expect(recordHelpResult.stdout).toContain('Record events for testing and debugging');
+      expect(recordHelpResult.stdout).toContain('start');
+      expect(recordHelpResult.stdout).toContain('stop');
+
+      const startHelpResult = await runCLI(['record', 'start', '--help']);
+      expect(startHelpResult.exitCode).toBe(0);
+      expect(startHelpResult.stdout).toContain('Start recording events');
+      expect(startHelpResult.stdout).toContain('--max-events');
+
+      const stopHelpResult = await runCLI(['record', 'stop', '--help']);
+      expect(stopHelpResult.exitCode).toBe(0);
+      expect(stopHelpResult.stdout).toContain('Stop recording and output session data');
+      expect(stopHelpResult.stdout).toContain('--out');
+
+      const replayHelpResult = await runCLI(['replay', '--help']);
+      expect(replayHelpResult.exitCode).toBe(0);
+      expect(replayHelpResult.stdout).toContain('Replay events from a saved session');
+      expect(replayHelpResult.stdout).toContain('--url');
+      expect(replayHelpResult.stdout).toContain('--dry-run');
+    });
+
+    it('should handle invalid max-events parameter', async () => {
+      const result = await runCLI(['record', 'start', '--max-events', 'invalid'], { env: getTestEnv() });
+      expect(result.exitCode).toBe(1);
+      expect(result.stderr).toContain('❌ Invalid max-events value');
+    });
+
+    it('should handle replay with non-existent file', async () => {
+      const result = await runCLI(['replay', '/non/existent/file.json'], { env: getTestEnv() });
+      expect(result.exitCode).toBe(1);
+      expect(result.stderr).toContain('❌ File not found');
+    });
+
+    it('should handle replay with invalid JSON file', async () => {
+      const tempFile = path.join(os.tmpdir(), `invalid-${Date.now()}.json`);
+      
+      try {
+        fs.writeFileSync(tempFile, 'invalid json content');
+        
+        const result = await runCLI(['replay', tempFile], { env: getTestEnv() });
+        expect(result.exitCode).toBe(1);
+        expect(result.stderr).toContain('❌ Invalid JSON file');
+      } finally {
+        if (fs.existsSync(tempFile)) {
+          fs.unlinkSync(tempFile);
+        }
+      }
+    });
+
+    it('should handle replay with invalid session format', async () => {
+      const tempFile = path.join(os.tmpdir(), `invalid-session-${Date.now()}.json`);
+      
+      try {
+        fs.writeFileSync(tempFile, JSON.stringify({ invalid: 'format' }));
+        
+        const result = await runCLI(['replay', tempFile], { env: getTestEnv() });
+        expect(result.exitCode).toBe(1);
+        expect(result.stderr).toContain('❌ Invalid session file format');
+      } finally {
+        if (fs.existsSync(tempFile)) {
+          fs.unlinkSync(tempFile);
+        }
+      }
+    });
+
+    it('should output session data to stdout when no file specified', async () => {
+      const testEnv = getTestEnv();
+
+      // Start and stop recording
+      await runCLI(['record', 'start'], { env: testEnv });
+      const stopResult = await runCLI(['record', 'stop'], { env: testEnv });
+      
+      expect(stopResult.exitCode).toBe(0);
+      
+      // Should output JSON to stdout
+      const sessionData = JSON.parse(stopResult.stdout);
+      expect(sessionData).toHaveProperty('events');
+      expect(sessionData).toHaveProperty('recordedAt');
+      expect(sessionData).toHaveProperty('totalEvents');
+    });
+  });
+
   describe('Error Handling', () => {
     it('should handle unknown commands gracefully', async () => {
       const result = await runCLI(['unknown-command']);

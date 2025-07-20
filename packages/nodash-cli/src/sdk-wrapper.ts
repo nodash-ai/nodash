@@ -1,4 +1,4 @@
-import { NodashSDK } from '@nodash/sdk';
+import { NodashSDK, EventSnapshot } from '@nodash/sdk';
 import { ConfigManager } from './config';
 
 export class SDKWrapper {
@@ -33,5 +33,20 @@ export class SDKWrapper {
   async health() {
     const sdk = this.createSDK();
     return await sdk.health();
+  }
+
+  startRecording(maxEvents?: number): void {
+    const sdk = this.createSDK();
+    sdk.startRecording(maxEvents);
+  }
+
+  stopRecording(): EventSnapshot {
+    const sdk = this.createSDK();
+    return sdk.stopRecording();
+  }
+
+  async replay(snapshot: EventSnapshot, options?: { url?: string; dryRun?: boolean }): Promise<void> {
+    const sdk = this.createSDK();
+    await sdk.replay(snapshot, options);
   }
 }

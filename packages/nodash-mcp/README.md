@@ -109,6 +109,46 @@ Retrieve documentation for SDK or CLI components.
 }
 ```
 
+### capture_session
+
+Start or stop event recording sessions for testing and debugging.
+
+**Parameters:**
+- `action` (required): "start" or "stop"
+- `maxEvents` (optional): Maximum events to record (default: 100)
+
+**Examples:**
+```json
+{
+  "action": "start",
+  "maxEvents": 50
+}
+```
+
+```json
+{
+  "action": "stop"
+}
+```
+
+### replay_session
+
+Replay events from a saved session file.
+
+**Parameters:**
+- `filePath` (required): Path to session JSON file
+- `url` (optional): Override base URL for replay
+- `dryRun` (optional): Log events without sending HTTP requests
+
+**Example:**
+```json
+{
+  "filePath": "./session.json",
+  "url": "https://staging.api.com",
+  "dryRun": true
+}
+```
+
 ## Available Resources
 
 ### nodash://docs/sdk
@@ -151,6 +191,33 @@ const sdkDocs = await mcp.callTool('get_documentation', {
 // Extract examples for learning
 const examples = sdkDocs.examples;
 console.log(`Found ${examples.length} SDK examples`);
+```
+
+### Event Recording Workflow
+
+```typescript
+// Start recording events for testing
+const startResult = await mcp.callTool('capture_session', {
+  action: 'start',
+  maxEvents: 50
+});
+
+// Run some tracking commands (gets recorded)
+await mcp.callTool('run_cli_command', {
+  command: 'track',
+  args: ['user_signup', '--properties', '{"plan": "pro"}']
+});
+
+// Stop recording and get session data
+const stopResult = await mcp.callTool('capture_session', {
+  action: 'stop'
+});
+
+// Replay with dry-run for testing
+const replayResult = await mcp.callTool('replay_session', {
+  filePath: './session.json',
+  dryRun: true
+});
 ```
 
 ### Error Handling

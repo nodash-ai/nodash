@@ -244,6 +244,26 @@ const sdk = new NodashSDK(
 );
 ```
 
+## Event Recorder - 30s Guide
+
+Record events in memory during development/testing, then replay them later. Perfect for debugging and testing event sequences.
+
+```typescript
+// Start recording (captures track/identify calls in memory)
+sdk.startRecording(100); // max 100 events
+
+// Your normal tracking code - gets recorded instead of sent
+await sdk.track('user_signup', { plan: 'pro' });
+await sdk.identify('user-123', { name: 'John' });
+
+// Stop and get the session
+const session = sdk.stopRecording();
+
+// Replay to different endpoint or dry-run
+await sdk.replay(session, { dryRun: true }); // logs without HTTP
+await sdk.replay(session, { url: 'https://staging.api.com' }); // custom endpoint
+```
+
 ### Batch Operations (Coming Soon™)
 Currently, each method makes individual requests. If you need batching, implement it in your server or wait for v0.2.0 (no promises on timing).
 

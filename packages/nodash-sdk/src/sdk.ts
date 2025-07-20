@@ -1,9 +1,11 @@
 import { HttpClient } from './http-client';
-import { NodashConfig, HealthStatus, TrackingEvent } from './types';
+import { NodashConfig, HealthStatus, TrackingEvent, IdentifyData, Event, EventSnapshot, ReplayOptions } from './types';
+import { Recorder } from './recorder';
 
 export class NodashSDK {
   private client: HttpClient;
   private config: NodashConfig;
+  private recorder: Recorder = new Recorder();
 
   constructor(baseUrl: string, apiToken?: string) {
     // Validate baseUrl
@@ -50,6 +52,17 @@ export class NodashSDK {
       timestamp: new Date(),
     };
 
+    // If recording is active, add to buffer instead of sending HTTP request
+    if (this.recorder.isActive()) {
+      const recordedEvent: Event = {
+        type: 'track',
+        data: trackingEvent,
+        timestamp: new Date()
+      };
+      this.recorder.addEvent(recordedEvent);
+      return;
+    }
+
     await this.client.post('/track', trackingEvent);
   }
 
@@ -61,11 +74,22 @@ export class NodashSDK {
       throw new Error('userId is required and must be a string');
     }
 
-    const identifyData = {
+    const identifyData: IdentifyData = {
       userId,
       traits: traits || {},
       timestamp: new Date(),
     };
+
+    // If recording is active, add to buffer instead of sending HTTP request
+    if (this.recorder.isActive()) {
+      const recordedEvent: Event = {
+        type: 'identify',
+        data: identifyData,
+        timestamp: new Date()
+      };
+      this.recorder.addEvent(recordedEvent);
+      return;
+    }
 
     await this.client.post('/identify', identifyData);
   }
@@ -75,5 +99,54 @@ export class NodashSDK {
    */
   async health(): Promise<HealthStatus> {
     return await this.client.get('/health');
+  }
+
+  /**
+   * Start recording events
+   */
+  startRecording(maxEvents: number = 100): void {
+    this.recorder.start(maxEvents);
+  }
+
+  /**
+   * Stop recording and return captured events
+   */
+  stopRecording(): EventSnapshot {
+    return this.recorder.stop();
+  }
+
+  /**
+   * Replay events from a snapshot
+   */
+  async replay(snapshot: EventSnapshot, options?: ReplayOptions): Promise<void> {
+    const errors: Error[] = [];
+    
+    for (const event of snapshot.events) {
+      try {
+        if (options?.dryRun) {
+          // Log event without sending HTTP request
+          console.log(`[DRY RUN] ${event.type}:`, event.data);
+          continue;
+        }
+
+        // Create temporary client with custom URL if provided
+        const client = options?.url 
+          ? new HttpClient(options.url, this.config.apiToken)
+          : this.client;
+
+        if (event.type === 'track') {
+          await client.post('/track', event.data);
+        } else if (event.type === 'identify') {
+          await client.post('/identify', event.data);
+        }
+      } catch (error) {
+        errors.push(error instanceof Error ? error : new Error(String(error)));
+      }
+    }
+
+    // If there were errors, throw the first one but continue processing
+    if (errors.length > 0) {
+      console.warn(`Replay completed with ${errors.length} errors`);
+    }
   }
 }

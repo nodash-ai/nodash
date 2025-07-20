@@ -397,6 +397,25 @@ fi
 # nodash health --json | jq '.status'
 ```
 
+## Event Recorder - 30s Guide
+
+Record events during development/testing sessions, then replay them for debugging or testing against different endpoints.
+
+```bash
+# Start recording events (captures in memory, doesn't send HTTP)
+nodash record start --max-events 50
+
+# Your normal tracking - gets recorded instead of sent
+nodash track "user_signup" --properties '{"plan": "pro"}'
+
+# Stop recording and save to file
+nodash record stop --out ./session.json
+
+# Replay to different endpoint or dry-run
+nodash replay ./session.json --dry-run  # logs without HTTP
+nodash replay ./session.json --url https://staging.api.com  # custom endpoint
+```
+
 ## What's Next?
 
 Future versions will include:

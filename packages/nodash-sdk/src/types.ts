@@ -23,3 +23,26 @@ export interface TrackingEvent {
   timestamp?: Date;
   userId?: string;
 }
+
+export interface IdentifyData {
+  userId: string;
+  traits?: Record<string, any>;
+  timestamp?: Date;
+}
+
+export interface Event {
+  type: 'track' | 'identify';
+  data: TrackingEvent | IdentifyData;
+  timestamp: Date;
+}
+
+export interface EventSnapshot {
+  events: Event[];
+  recordedAt: Date;
+  totalEvents: number;
+}
+
+export interface ReplayOptions {
+  url?: string;
+  dryRun?: boolean;
+}
