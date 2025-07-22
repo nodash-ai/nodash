@@ -576,8 +576,8 @@ describe('Nodash CLI Component Tests', () => {
     it('should output session data to stdout when no file specified', async () => {
       const testEnv = getTestEnv();
 
-      // Start and stop recording
-      await runCLI(['record', 'start'], { env: testEnv });
+      // Start and stop recording in memory mode
+      await runCLI(['record', 'start', '--memory'], { env: testEnv });
       const stopResult = await runCLI(['record', 'stop'], { env: testEnv });
       
       expect(stopResult.exitCode).toBe(0);
@@ -587,6 +587,77 @@ describe('Nodash CLI Component Tests', () => {
       expect(sessionData).toHaveProperty('events');
       expect(sessionData).toHaveProperty('recordedAt');
       expect(sessionData).toHaveProperty('totalEvents');
+    });
+
+    it('should support memory mode for single-process usage', async () => {
+      const testEnv = getTestEnv();
+
+      // Memory mode is designed for single-process SDK usage, not CLI cross-process recording
+      // This test verifies the CLI accepts the --memory flag and provides appropriate feedback
+      const startResult = await runCLI(['record', 'start', '--memory'], { env: testEnv });
+      expect(startResult.exitCode).toBe(0);
+      expect(startResult.stdout).toContain('💾 Recording to memory');
+
+      // For CLI cross-process usage, events would not persist to memory recording
+      // (each CLI command is a separate process). This is expected behavior.
+      // Memory recording is intended for SDK usage within a single process.
+      
+      const stopResult = await runCLI(['record', 'stop'], { env: testEnv });
+      expect(stopResult.exitCode).toBe(0);
+      
+      // Should output empty session for memory mode without events in same process
+      const sessionData = JSON.parse(stopResult.stdout);
+      expect(sessionData.totalEvents).toBe(0);
+      expect(sessionData.events).toHaveLength(0);
+    });
+
+    it('should capture track events during recording session (file mode)', async () => {
+      const testEnv = getTestEnv();
+      const tempFile = path.join(os.tmpdir(), `nodash-integration-${Date.now()}.json`);
+
+      try {
+        // Start file-based recording
+        const startResult = await runCLI(['record', 'start', '--max-events', '5'], { env: testEnv });
+        expect(startResult.exitCode).toBe(0);
+        expect(startResult.stdout).toContain('📹 Started recording events');
+        expect(startResult.stdout).toContain('📁 Recording to:');
+
+        // Track events during recording
+        const trackResult1 = await runCLI(['track', 'test_event_1', '--properties', '{"key": "value1"}'], { env: testEnv });
+        expect(trackResult1.exitCode).toBe(0);
+        
+        const trackResult2 = await runCLI(['track', 'test_event_2', '--properties', '{"key": "value2"}'], { env: testEnv });
+        expect(trackResult2.exitCode).toBe(0);
+
+        // Stop recording with custom output file
+        const stopResult = await runCLI(['record', 'stop', '--out', tempFile], { env: testEnv });
+        expect(stopResult.exitCode).toBe(0);
+        expect(stopResult.stdout).toContain('📊 Recorded 2 events');
+
+        // Verify the session file contains captured events
+        expect(fs.existsSync(tempFile)).toBe(true);
+        const sessionData = JSON.parse(fs.readFileSync(tempFile, 'utf8'));
+        
+        expect(sessionData.totalEvents).toBe(2);
+        expect(sessionData.events).toHaveLength(2);
+        expect(sessionData.events[0].type).toBe('track');
+        expect(sessionData.events[0].data.event).toBe('test_event_1');
+        expect(sessionData.events[1].data.event).toBe('test_event_2');
+
+        // Test replay of captured events
+        const replayResult = await runCLI(['replay', tempFile, '--dry-run'], { env: testEnv });
+        expect(replayResult.exitCode).toBe(0);
+        expect(replayResult.stdout).toContain('🔄 Replaying 2 events');
+        expect(replayResult.stdout).toContain('[DRY RUN] track:');
+        expect(replayResult.stdout).toContain('test_event_1');
+        expect(replayResult.stdout).toContain('test_event_2');
+
+      } finally {
+        // Clean up temp file
+        if (fs.existsSync(tempFile)) {
+          fs.unlinkSync(tempFile);
+        }
+      }
     });
   });
 

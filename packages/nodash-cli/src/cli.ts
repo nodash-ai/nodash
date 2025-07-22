@@ -149,7 +149,8 @@ recordCommand
   .command('start')
   .description('Start recording events')
   .option('--max-events <number>', 'Maximum number of events to record (default: 100)', '100')
-  .action(async (options: { maxEvents: string }) => {
+  .option('--memory', 'Use memory-based recording instead of file-based')
+  .action(async (options: { maxEvents: string; memory?: boolean }) => {
     try {
       const maxEvents = parseInt(options.maxEvents, 10);
       if (isNaN(maxEvents) || maxEvents <= 0) {
@@ -157,8 +158,13 @@ recordCommand
         process.exit(1);
       }
 
-      sdkWrapper.startRecording(maxEvents);
+      const result = sdkWrapper.startRecording(maxEvents, options.memory);
       console.log(`📹 Started recording events (max: ${maxEvents})`);
+      if (result.filePath) {
+        console.log(`📁 Recording to: ${result.filePath}`);
+      } else if (options.memory) {
+        console.log(`💾 Recording to memory`);
+      }
     } catch (error) {
       console.error('❌ Record start error:', error instanceof Error ? error.message : error);
       process.exit(1);
@@ -168,19 +174,26 @@ recordCommand
 recordCommand
   .command('stop')
   .description('Stop recording and output session data')
-  .option('--out <file>', 'Output file path (default: stdout)')
+  .option('--out <file>', 'Output file path (default: uses default file if available, otherwise stdout)')
   .action(async (options: { out?: string }) => {
     try {
-      const snapshot = sdkWrapper.stopRecording();
-      const output = JSON.stringify(snapshot, null, 2);
+      const result = sdkWrapper.stopRecording();
+      const { snapshot, filePath } = result;
 
       if (options.out) {
+        // User specified output file
         const fs = await import('fs');
+        const output = JSON.stringify(snapshot, null, 2);
         fs.writeFileSync(options.out, output);
         console.log(`✅ Session saved to ${options.out}`);
         console.log(`📊 Recorded ${snapshot.totalEvents} events`);
+      } else if (filePath) {
+        // File was already written during recording
+        console.log(`✅ Session saved to ${filePath}`);
+        console.log(`📊 Recorded ${snapshot.totalEvents} events`);
       } else {
-        console.log(output);
+        // Memory mode, output to stdout
+        console.log(JSON.stringify(snapshot, null, 2));
       }
     } catch (error) {
       console.error('❌ Record stop error:', error instanceof Error ? error.message : error);

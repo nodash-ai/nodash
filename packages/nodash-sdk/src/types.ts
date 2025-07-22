@@ -46,3 +46,13 @@ export interface ReplayOptions {
   url?: string;
   dryRun?: boolean;
 }
+
+export interface RecordingOptions {
+  maxEvents?: number;
+  store?: string; // 'memory' or file path
+}
+
+export interface RecordingResult {
+  snapshot: EventSnapshot;
+  filePath?: string;
+}

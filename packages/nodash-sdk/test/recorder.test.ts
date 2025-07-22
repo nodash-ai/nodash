@@ -13,19 +13,19 @@ describe('Recorder', () => {
     it('should start recording with default max events', () => {
       expect(recorder.isActive()).toBe(false);
       
-      recorder.start();
+      recorder.start({ store: 'memory' });
       
       expect(recorder.isActive()).toBe(true);
     });
 
     it('should start recording with custom max events', () => {
-      recorder.start(50);
+      recorder.start({ maxEvents: 50, store: 'memory' });
       
       expect(recorder.isActive()).toBe(true);
     });
 
     it('should stop recording and return snapshot', () => {
-      recorder.start();
+      recorder.start({ store: 'memory' });
       
       const event: Event = {
         type: 'track',
@@ -34,27 +34,28 @@ describe('Recorder', () => {
       };
       recorder.addEvent(event);
       
-      const snapshot = recorder.stop();
+      const result = recorder.stop();
       
       expect(recorder.isActive()).toBe(false);
-      expect(snapshot.events).toHaveLength(1);
-      expect(snapshot.events[0]).toEqual(event);
-      expect(snapshot.totalEvents).toBe(1);
-      expect(snapshot.recordedAt).toBeInstanceOf(Date);
+      expect(result.snapshot.events).toHaveLength(1);
+      expect(result.snapshot.events[0]).toEqual(event);
+      expect(result.snapshot.totalEvents).toBe(1);
+      expect(result.snapshot.recordedAt).toBeInstanceOf(Date);
+      expect(result.filePath).toBeUndefined();
     });
 
     it('should return empty snapshot when no events recorded', () => {
-      recorder.start();
-      const snapshot = recorder.stop();
+      recorder.start({ store: 'memory' });
+      const result = recorder.stop();
       
-      expect(snapshot.events).toHaveLength(0);
-      expect(snapshot.totalEvents).toBe(0);
+      expect(result.snapshot.events).toHaveLength(0);
+      expect(result.snapshot.totalEvents).toBe(0);
     });
   });
 
   describe('buffer limit enforcement (ring-buffer)', () => {
     it('should enforce default buffer limit of 100 events', () => {
-      recorder.start(); // Default 100 events
+      recorder.start({ store: 'memory' }); // Default 100 events
       
       // Add 150 events
       for (let i = 0; i < 150; i++) {
@@ -66,7 +67,8 @@ describe('Recorder', () => {
         recorder.addEvent(event);
       }
       
-      const snapshot = recorder.stop();
+      const result = recorder.stop();
+      const snapshot = result.snapshot;
       
       expect(snapshot.events).toHaveLength(100);
       expect(snapshot.totalEvents).toBe(100);
@@ -80,7 +82,7 @@ describe('Recorder', () => {
     });
 
     it('should enforce custom buffer limit', () => {
-      recorder.start(5); // Custom limit of 5
+      recorder.start({ maxEvents: 5, store: 'memory' }); // Custom limit of 5
       
       // Add 8 events
       for (let i = 0; i < 8; i++) {
@@ -92,7 +94,8 @@ describe('Recorder', () => {
         recorder.addEvent(event);
       }
       
-      const snapshot = recorder.stop();
+      const result = recorder.stop();
+      const snapshot = result.snapshot;
       
       expect(snapshot.events).toHaveLength(5);
       expect(snapshot.totalEvents).toBe(5);
@@ -106,7 +109,7 @@ describe('Recorder', () => {
     });
 
     it('should handle buffer limit of 1', () => {
-      recorder.start(1);
+      recorder.start({ maxEvents: 1, store: 'memory' });
       
       const event1: Event = {
         type: 'track',
@@ -122,7 +125,8 @@ describe('Recorder', () => {
       recorder.addEvent(event1);
       recorder.addEvent(event2);
       
-      const snapshot = recorder.stop();
+      const result = recorder.stop();
+      const snapshot = result.snapshot;
       
       expect(snapshot.events).toHaveLength(1);
       expect(snapshot.events[0]).toEqual(event2);
@@ -131,7 +135,7 @@ describe('Recorder', () => {
 
   describe('event capture during recording', () => {
     it('should capture track events', () => {
-      recorder.start();
+      recorder.start({ store: 'memory' });
       
       const trackEvent: Event = {
         type: 'track',
@@ -144,14 +148,15 @@ describe('Recorder', () => {
       };
       
       recorder.addEvent(trackEvent);
-      const snapshot = recorder.stop();
+      const result = recorder.stop();
+      const snapshot = result.snapshot;
       
       expect(snapshot.events).toHaveLength(1);
       expect(snapshot.events[0]).toEqual(trackEvent);
     });
 
     it('should capture identify events', () => {
-      recorder.start();
+      recorder.start({ store: 'memory' });
       
       const identifyEvent: Event = {
         type: 'identify',
@@ -164,14 +169,15 @@ describe('Recorder', () => {
       };
       
       recorder.addEvent(identifyEvent);
-      const snapshot = recorder.stop();
+      const result = recorder.stop();
+      const snapshot = result.snapshot;
       
       expect(snapshot.events).toHaveLength(1);
       expect(snapshot.events[0]).toEqual(identifyEvent);
     });
 
     it('should capture mixed event types', () => {
-      recorder.start();
+      recorder.start({ store: 'memory' });
       
       const trackEvent: Event = {
         type: 'track',
@@ -188,7 +194,8 @@ describe('Recorder', () => {
       recorder.addEvent(trackEvent);
       recorder.addEvent(identifyEvent);
       
-      const snapshot = recorder.stop();
+      const result = recorder.stop();
+      const snapshot = result.snapshot;
       
       expect(snapshot.events).toHaveLength(2);
       expect(snapshot.events[0]).toEqual(trackEvent);
@@ -204,14 +211,15 @@ describe('Recorder', () => {
       
       recorder.addEvent(event); // Not recording
       
-      recorder.start();
-      const snapshot = recorder.stop();
+      recorder.start({ store: 'memory' });
+      const result = recorder.stop();
+      const snapshot = result.snapshot;
       
       expect(snapshot.events).toHaveLength(0);
     });
 
     it('should not capture events after stopping', () => {
-      recorder.start();
+      recorder.start({ store: 'memory' });
       recorder.stop();
       
       const event: Event = {
@@ -222,8 +230,9 @@ describe('Recorder', () => {
       
       recorder.addEvent(event); // After stopping
       
-      recorder.start();
-      const snapshot = recorder.stop();
+      recorder.start({ store: 'memory' });
+      const result = recorder.stop();
+      const snapshot = result.snapshot;
       
       expect(snapshot.events).toHaveLength(0);
     });

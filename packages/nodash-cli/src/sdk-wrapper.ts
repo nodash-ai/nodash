@@ -1,11 +1,16 @@
-import { NodashSDK, EventSnapshot } from '@nodash/sdk';
+import { NodashSDK, EventSnapshot, RecordingResult, Event } from '@nodash/sdk';
 import { ConfigManager } from './config';
+import { FileRecorder } from './file-recorder';
+import { getDefaultRecordingPath } from '@nodash/sdk';
 
 export class SDKWrapper {
   private configManager: ConfigManager;
+  private sdk?: NodashSDK;
+  private fileRecorder: FileRecorder;
 
   constructor() {
     this.configManager = new ConfigManager();
+    this.fileRecorder = new FileRecorder();
   }
 
   createSDK(): NodashSDK {
@@ -20,13 +25,58 @@ export class SDKWrapper {
     return new NodashSDK(config.baseUrl, config.apiToken);
   }
 
+  private getSDK(): NodashSDK {
+    if (!this.sdk) {
+      this.sdk = this.createSDK();
+    }
+    return this.sdk;
+  }
+
   async track(event: string, properties?: Record<string, any>): Promise<void> {
-    const sdk = this.createSDK();
+    // Check if file recording is active
+    if (this.fileRecorder.isRecordingActive()) {
+      const trackingEvent = {
+        event,
+        properties: properties || {},
+        timestamp: new Date(),
+      };
+      
+      const recordedEvent: Event = {
+        type: 'track' as const,
+        data: trackingEvent,
+        timestamp: new Date()
+      };
+      
+      this.fileRecorder.addEvent(recordedEvent);
+      return;
+    }
+
+    // Use the persistent SDK instance (for memory recording or regular HTTP)
+    const sdk = this.getSDK();
     await sdk.track(event, properties);
   }
 
   async identify(userId: string, traits?: Record<string, any>): Promise<void> {
-    const sdk = this.createSDK();
+    // Check if file recording is active
+    if (this.fileRecorder.isRecordingActive()) {
+      const identifyData = {
+        userId,
+        traits: traits || {},
+        timestamp: new Date(),
+      };
+      
+      const recordedEvent: Event = {
+        type: 'identify' as const,
+        data: identifyData,
+        timestamp: new Date()
+      };
+      
+      this.fileRecorder.addEvent(recordedEvent);
+      return;
+    }
+
+    // Use the persistent SDK instance (for memory recording or regular HTTP)
+    const sdk = this.getSDK();
     await sdk.identify(userId, traits);
   }
 
@@ -35,13 +85,28 @@ export class SDKWrapper {
     return await sdk.health();
   }
 
-  startRecording(maxEvents?: number): void {
-    const sdk = this.createSDK();
-    sdk.startRecording(maxEvents);
+  startRecording(maxEvents?: number, useMemory?: boolean): { filePath?: string } {
+    if (useMemory) {
+      // Use in-memory SDK recording
+      const sdk = this.getSDK();
+      return sdk.startRecording({ maxEvents, store: 'memory' });
+    } else {
+      // Use file-based recording
+      const filePath = getDefaultRecordingPath();
+      this.fileRecorder.startRecording(filePath, maxEvents || 100);
+      return { filePath };
+    }
   }
 
-  stopRecording(): EventSnapshot {
-    const sdk = this.createSDK();
+  stopRecording(): RecordingResult {
+    // Try file recording first
+    const fileResult = this.fileRecorder.stopRecording();
+    if (fileResult) {
+      return fileResult;
+    }
+    
+    // Fall back to SDK memory recording
+    const sdk = this.getSDK();
     return sdk.stopRecording();
   }
 

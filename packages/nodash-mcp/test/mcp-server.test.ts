@@ -471,6 +471,41 @@ describe('Nodash MCP Server Component Tests', () => {
             expect(result.command).toContain('--url https://custom.example.com');
             expect(result.command).toContain('--dry-run');
         });
+
+        it('should support full recording workflow via CLI delegation', async () => {
+            // This test verifies that MCP can orchestrate a complete recording session
+            // through CLI command delegation, even though actual event capture requires
+            // a real nodash CLI setup with proper configuration
+            
+            // Start recording session
+            const startResponse = await client.sendRequest('tools/call', {
+                name: 'capture_session',
+                arguments: { action: 'start', maxEvents: 5 }
+            });
+
+            expect(startResponse.result).toBeDefined();
+            const startContent = startResponse.result.content[0];
+            const startResult = JSON.parse(startContent.text);
+            expect(startResult.command).toBe('nodash record start --max-events 5');
+            
+            // The actual CLI execution is delegated, so we verify the command structure
+            // In a real scenario, events would be tracked between start/stop
+            
+            // Stop recording session
+            const stopResponse = await client.sendRequest('tools/call', {
+                name: 'capture_session',
+                arguments: { action: 'stop' }
+            });
+
+            expect(stopResponse.result).toBeDefined();
+            const stopContent = stopResponse.result.content[0];
+            const stopResult = JSON.parse(stopContent.text);
+            expect(stopResult.command).toBe('nodash record stop');
+            
+            // Verify MCP properly delegates CLI commands for recording workflow
+            expect(startResult.success).toBeDefined();
+            expect(stopResult.success).toBeDefined();
+        });
     });
 
     describe('Documentation Content Validation', () => {

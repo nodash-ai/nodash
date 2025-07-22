@@ -284,34 +284,36 @@ describe('NodashSDK Component Tests', () => {
   describe('Event Recording', () => {
     describe('startRecording() and stopRecording()', () => {
       it('should start and stop recording', () => {
-        sdk.startRecording();
-        const snapshot = sdk.stopRecording();
+        sdk.startRecording({ store: 'memory' });
+        const result = sdk.stopRecording();
         
-        expect(snapshot).toEqual({
+        expect(result.snapshot).toEqual({
           events: [],
           recordedAt: expect.any(Date),
           totalEvents: 0
         });
+        expect(result.filePath).toBeUndefined();
       });
 
       it('should start recording with custom max events', () => {
-        sdk.startRecording(50);
+        sdk.startRecording({ maxEvents: 50, store: 'memory' });
         // Recording should be active but we can't directly test the limit without internal access
-        const snapshot = sdk.stopRecording();
-        expect(snapshot.totalEvents).toBe(0);
+        const result = sdk.stopRecording();
+        expect(result.snapshot.totalEvents).toBe(0);
       });
     });
 
     describe('track/identify behavior during recording', () => {
       it('should capture track events during recording instead of sending HTTP', async () => {
-        sdk.startRecording();
+        sdk.startRecording({ store: 'memory' });
         
         await sdk.track('test_event', { prop: 'value' });
         
         // No HTTP request should be made
         expect(mockFetch).not.toHaveBeenCalled();
         
-        const snapshot = sdk.stopRecording();
+        const result = sdk.stopRecording();
+        const snapshot = result.snapshot;
         expect(snapshot.events).toHaveLength(1);
         expect(snapshot.events[0].type).toBe('track');
         expect(snapshot.events[0].data).toEqual({
@@ -322,14 +324,15 @@ describe('NodashSDK Component Tests', () => {
       });
 
       it('should capture identify events during recording instead of sending HTTP', async () => {
-        sdk.startRecording();
+        sdk.startRecording({ store: 'memory' });
         
         await sdk.identify('user-123', { name: 'John' });
         
         // No HTTP request should be made
         expect(mockFetch).not.toHaveBeenCalled();
         
-        const snapshot = sdk.stopRecording();
+        const result = sdk.stopRecording();
+        const snapshot = result.snapshot;
         expect(snapshot.events).toHaveLength(1);
         expect(snapshot.events[0].type).toBe('identify');
         expect(snapshot.events[0].data).toEqual({
@@ -340,7 +343,7 @@ describe('NodashSDK Component Tests', () => {
       });
 
       it('should capture multiple events during recording', async () => {
-        sdk.startRecording();
+        sdk.startRecording({ store: 'memory' });
         
         await sdk.track('event1');
         await sdk.identify('user-1');
@@ -348,7 +351,8 @@ describe('NodashSDK Component Tests', () => {
         
         expect(mockFetch).not.toHaveBeenCalled();
         
-        const snapshot = sdk.stopRecording();
+        const result = sdk.stopRecording();
+        const snapshot = result.snapshot;
         expect(snapshot.events).toHaveLength(3);
         expect(snapshot.events[0].type).toBe('track');
         expect(snapshot.events[1].type).toBe('identify');
@@ -361,7 +365,7 @@ describe('NodashSDK Component Tests', () => {
           json: async () => mockSuccessResponse,
         } as Response);
 
-        sdk.startRecording();
+        sdk.startRecording({ store: 'memory' });
         await sdk.track('recorded_event');
         sdk.stopRecording();
         

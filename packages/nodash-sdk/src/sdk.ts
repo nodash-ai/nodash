@@ -1,5 +1,5 @@
 import { HttpClient } from './http-client';
-import { NodashConfig, HealthStatus, TrackingEvent, IdentifyData, Event, EventSnapshot, ReplayOptions } from './types';
+import { NodashConfig, HealthStatus, TrackingEvent, IdentifyData, Event, EventSnapshot, ReplayOptions, RecordingOptions, RecordingResult } from './types';
 import { Recorder } from './recorder';
 
 export class NodashSDK {
@@ -104,22 +104,36 @@ export class NodashSDK {
   /**
    * Start recording events
    */
-  startRecording(maxEvents: number = 100): void {
-    this.recorder.start(maxEvents);
+  startRecording(options: RecordingOptions = {}): { filePath?: string } {
+    // Default to file-based recording if no store specified
+    if (!options.store) {
+      options.store = 'default';
+    }
+    return this.recorder.start(options);
   }
 
   /**
    * Stop recording and return captured events
    */
-  stopRecording(): EventSnapshot {
+  stopRecording(): RecordingResult {
     return this.recorder.stop();
   }
 
   /**
-   * Replay events from a snapshot
+   * Replay events from a snapshot or file
    */
-  async replay(snapshot: EventSnapshot, options?: ReplayOptions): Promise<void> {
+  async replay(snapshotOrPath: EventSnapshot | string, options?: ReplayOptions): Promise<void> {
     const errors: Error[] = [];
+    
+    // If string is provided, read from file
+    let snapshot: EventSnapshot;
+    if (typeof snapshotOrPath === 'string') {
+      const fs = await import('fs');
+      const fileContent = fs.readFileSync(snapshotOrPath, 'utf8');
+      snapshot = JSON.parse(fileContent);
+    } else {
+      snapshot = snapshotOrPath;
+    }
     
     for (const event of snapshot.events) {
       try {
