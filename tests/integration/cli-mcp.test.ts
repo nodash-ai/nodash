@@ -13,12 +13,12 @@ describe('CLI-MCP Integration Tests', () => {
     if (!response.result?.content?.[0]) {
       throw new Error('Invalid MCP response format');
     }
-    
+
     const content = response.result.content[0];
     if (content.type !== 'text') {
       throw new Error('Expected text content in MCP response');
     }
-    
+
     return JSON.parse(content.text);
   }
 
@@ -39,21 +39,21 @@ describe('CLI-MCP Integration Tests', () => {
 
       mcpServer.stdout?.on('data', (data: Buffer) => {
         buffer += data.toString();
-        
+
         // Process complete lines
         const lines = buffer.split('\n');
         buffer = lines.pop() || ''; // Keep incomplete line in buffer
 
         for (const line of lines) {
           if (!line.trim()) continue;
-          
+
           try {
             const response = JSON.parse(line);
             if (response.id && this.pendingRequests.has(response.id)) {
               const pending = this.pendingRequests.get(response.id)!;
               clearTimeout(pending.timeout);
               this.pendingRequests.delete(response.id);
-              
+
               if (response.error) {
                 pending.reject(new Error(response.error.message || 'MCP Error'));
               } else {
@@ -141,12 +141,12 @@ describe('CLI-MCP Integration Tests', () => {
 
       const createClientAndTest = () => {
         if (initialized || !mcpServer) return;
-        
+
         if (!clientCreated) {
           mcpClient = new MCPTestClient();
           clientCreated = true;
         }
-        
+
         // Try to send a simple request to verify server is ready
         mcpClient.sendRequest('tools/list')
           .then(() => {
@@ -207,12 +207,12 @@ describe('CLI-MCP Integration Tests', () => {
     if (mcpClient) {
       mcpClient.cleanup();
     }
-    
+
     if (mcpServer) {
       mcpServer.kill();
       mcpServer = null;
     }
-    
+
     // Clean up test config directory
     if (fs.existsSync(testConfigDir)) {
       fs.rmSync(testConfigDir, { recursive: true, force: true });
@@ -229,7 +229,7 @@ describe('CLI-MCP Integration Tests', () => {
   describe('MCP Tool Discovery', () => {
     it('should discover CLI-related tools', async () => {
       const response = await mcpClient.sendRequest('tools/list');
-      
+
       expect(response.result).toBeDefined();
       expect(response.result.tools).toBeInstanceOf(Array);
 
@@ -279,7 +279,7 @@ describe('CLI-MCP Integration Tests', () => {
       const response = await mcpClient.sendRequest('tools/call', {
         name: 'setup_project',
         arguments: {
-          baseUrl: 'http://localhost:3000'
+          baseUrl: 'http://localhost:9999' // Use a port that's unlikely to be in use
         }
       });
 
@@ -298,7 +298,7 @@ describe('CLI-MCP Integration Tests', () => {
 
       // Should handle missing required parameters gracefully
       expect(response.result || response.error).toBeDefined();
-      
+
       if (response.result) {
         // Parse MCP protocol response
         const setupResult = parseMCPContent(response);
@@ -340,7 +340,7 @@ describe('CLI-MCP Integration Tests', () => {
       // Parse MCP protocol response
       const commandResult = parseMCPContent(response);
       expect(commandResult.command).toBe('nodash version');
-      
+
       // Command might fail if CLI isn't globally installed, but MCP should handle it
       expect(typeof commandResult.success).toBe('boolean');
       expect(commandResult.output).toBeDefined();
@@ -401,7 +401,7 @@ describe('CLI-MCP Integration Tests', () => {
       });
 
       expect(response.result).toBeDefined();
-      
+
       // Parse MCP protocol response
       const docData = parseMCPContent(response);
       expect(docData.component).toBe('cli');
@@ -410,7 +410,7 @@ describe('CLI-MCP Integration Tests', () => {
       expect(docData.examples.length).toBeGreaterThan(0);
 
       // Verify CLI-specific examples
-      const cliExamples = docData.examples.filter((ex: string) => 
+      const cliExamples = docData.examples.filter((ex: string) =>
         ex.includes('nodash ') || ex.includes('npm install @nodash/cli')
       );
       expect(cliExamples.length).toBeGreaterThan(0);
@@ -423,7 +423,7 @@ describe('CLI-MCP Integration Tests', () => {
 
       expect(response.result).toBeDefined();
       const content = response.result.contents[0];
-      
+
       expect(content.uri).toBe('nodash://docs/cli');
       expect(content.mimeType).toBe('text/markdown');
       expect(content.text).toContain('# @nodash/cli');
@@ -641,7 +641,7 @@ describe('CLI-MCP Integration Tests', () => {
         expect(response.result).toBeDefined();
         // Parse MCP protocol response
         const result = parseMCPContent(response);
-        
+
         if (testCase.shouldSucceed) {
           expect(result.command).toBeDefined();
         } else {

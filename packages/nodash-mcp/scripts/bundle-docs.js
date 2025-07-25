@@ -37,7 +37,9 @@ export function extractExamples(content: string): string[] {
   let match;
 
   while ((match = codeBlockRegex.exec(content)) !== null) {
-    examples.push(match[1].trim());
+    if (match[1]) {
+      examples.push(match[1].trim());
+    }
   }
 
   return examples;

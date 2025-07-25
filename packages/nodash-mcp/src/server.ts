@@ -320,7 +320,7 @@ class NodashMCPServer {
       const result: SetupResult = {
         success: initResult.success, // Setup is successful if init worked, even if health check fails
         message: healthResult.success
-          ? 'Project setup completed successfully! Server is healthy and ready to use.'
+          ? 'Project configured successfully! Server is healthy and ready to use.'
           : `Project configured successfully, but server health check failed: ${healthResult.error}`,
         config,
         steps

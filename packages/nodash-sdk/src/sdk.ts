@@ -41,7 +41,7 @@ export class NodashSDK {
   /**
    * Track an event
    */
-  async track(event: string, properties?: Record<string, any>): Promise<void> {
+  async track(event: string, properties?: Record<string, any>, userId?: string): Promise<void> {
     if (!event || typeof event !== 'string') {
       throw new Error('event name is required and must be a string');
     }
@@ -50,6 +50,7 @@ export class NodashSDK {
       event,
       properties: properties || {},
       timestamp: new Date(),
+      ...(userId && { userId }),
     };
 
     // If recording is active, add to buffer instead of sending HTTP request
