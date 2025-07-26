@@ -256,4 +256,289 @@ program
     }
   });
 
+// Query command group
+const queryCommand = program
+  .command('query')
+  .description('Query events and users');
+
+queryCommand
+  .command('events')
+  .description('Query events with filters')
+  .option('--type <types>', 'Event types (comma-separated)')
+  .option('--user-id <userId>', 'Filter by user ID')
+  .option('--start <date>', 'Start date (ISO 8601)')
+  .option('--end <date>', 'End date (ISO 8601)')
+  .option('--properties <json>', 'Property filters as JSON')
+  .option('--sort-by <field>', 'Sort by field (timestamp, eventName, userId)')
+  .option('--sort-order <order>', 'Sort order (asc, desc)')
+  .option('--limit <number>', 'Maximum number of results', '100')
+  .option('--offset <number>', 'Number of results to skip', '0')
+  .option('--format <format>', 'Output format (json, table)', 'json')
+  .action(async (options: {
+    type?: string;
+    userId?: string;
+    start?: string;
+    end?: string;
+    properties?: string;
+    sortBy?: string;
+    sortOrder?: string;
+    limit: string;
+    offset: string;
+    format: string;
+  }) => {
+    try {
+      const queryOptions: any = {};
+
+      // Parse event types
+      if (options.type) {
+        queryOptions.eventTypes = options.type.split(',').map(t => t.trim());
+      }
+
+      // Parse user ID
+      if (options.userId) {
+        queryOptions.userId = options.userId;
+      }
+
+      // Parse dates
+      if (options.start) {
+        queryOptions.startDate = new Date(options.start);
+        if (isNaN(queryOptions.startDate.getTime())) {
+          console.error('❌ Invalid start date format. Use ISO 8601 format (e.g., 2024-01-01T00:00:00Z)');
+          process.exit(1);
+        }
+      }
+
+      if (options.end) {
+        queryOptions.endDate = new Date(options.end);
+        if (isNaN(queryOptions.endDate.getTime())) {
+          console.error('❌ Invalid end date format. Use ISO 8601 format (e.g., 2024-01-01T00:00:00Z)');
+          process.exit(1);
+        }
+      }
+
+      // Parse properties
+      if (options.properties) {
+        try {
+          queryOptions.properties = JSON.parse(options.properties);
+        } catch {
+          console.error('❌ Invalid properties JSON');
+          process.exit(1);
+        }
+      }
+
+      // Parse sorting
+      if (options.sortBy) {
+        if (!['timestamp', 'eventName', 'userId'].includes(options.sortBy)) {
+          console.error('❌ Invalid sortBy. Must be one of: timestamp, eventName, userId');
+          process.exit(1);
+        }
+        queryOptions.sortBy = options.sortBy;
+      }
+
+      if (options.sortOrder) {
+        if (!['asc', 'desc'].includes(options.sortOrder)) {
+          console.error('❌ Invalid sortOrder. Must be either "asc" or "desc"');
+          process.exit(1);
+        }
+        queryOptions.sortOrder = options.sortOrder;
+      }
+
+      // Parse pagination
+      const limit = parseInt(options.limit, 10);
+      if (isNaN(limit) || limit <= 0) {
+        console.error('❌ Invalid limit. Must be a positive integer');
+        process.exit(1);
+      }
+      queryOptions.limit = limit;
+
+      const offset = parseInt(options.offset, 10);
+      if (isNaN(offset) || offset < 0) {
+        console.error('❌ Invalid offset. Must be a non-negative integer');
+        process.exit(1);
+      }
+      queryOptions.offset = offset;
+
+      // Parse format
+      if (!['json', 'table'].includes(options.format)) {
+        console.error('❌ Invalid format. Must be either "json" or "table"');
+        process.exit(1);
+      }
+      queryOptions.format = options.format;
+
+      const result = await sdkWrapper.queryEvents(queryOptions);
+
+      if (options.format === 'table') {
+        console.log(`📊 Found ${result.totalCount} events (showing ${result.events.length})`);
+        console.log('');
+        
+        if (result.events.length === 0) {
+          console.log('No events found matching the criteria.');
+        } else {
+          // Simple table format
+          console.log('Event Name'.padEnd(20) + 'User ID'.padEnd(15) + 'Timestamp'.padEnd(25) + 'Properties');
+          console.log('-'.repeat(80));
+          
+          for (const event of result.events) {
+            const eventName = event.eventName.padEnd(20);
+            const userId = (event.userId || '').padEnd(15);
+            const timestamp = event.timestamp.toISOString().padEnd(25);
+            const properties = JSON.stringify(event.properties);
+            
+            console.log(`${eventName}${userId}${timestamp}${properties}`);
+          }
+        }
+        
+        console.log('');
+        console.log(`📄 Page: ${Math.floor(result.pagination.offset / result.pagination.limit) + 1}`);
+        console.log(`⏱️  Query time: ${result.executionTime}ms`);
+        
+        if (result.hasMore) {
+          console.log(`➡️  Use --offset ${result.pagination.nextOffset} for next page`);
+        }
+      } else {
+        console.log(JSON.stringify(result, null, 2));
+      }
+    } catch (error) {
+      console.error('❌ Query events error:', error instanceof Error ? error.message : error);
+      process.exit(1);
+    }
+  });
+
+queryCommand
+  .command('users')
+  .description('Query users with filters')
+  .option('--user-id <userId>', 'Filter by user ID')
+  .option('--active-since <date>', 'Filter users active since date (ISO 8601)')
+  .option('--active-until <date>', 'Filter users active until date (ISO 8601)')
+  .option('--properties <json>', 'Property filters as JSON')
+  .option('--sort-by <field>', 'Sort by field (firstSeen, lastSeen, eventCount, sessionCount)')
+  .option('--sort-order <order>', 'Sort order (asc, desc)')
+  .option('--limit <number>', 'Maximum number of results', '100')
+  .option('--offset <number>', 'Number of results to skip', '0')
+  .option('--format <format>', 'Output format (json, table)', 'json')
+  .action(async (options: {
+    userId?: string;
+    activeSince?: string;
+    activeUntil?: string;
+    properties?: string;
+    sortBy?: string;
+    sortOrder?: string;
+    limit: string;
+    offset: string;
+    format: string;
+  }) => {
+    try {
+      const queryOptions: any = {};
+
+      // Parse user ID
+      if (options.userId) {
+        queryOptions.userId = options.userId;
+      }
+
+      // Parse dates
+      if (options.activeSince) {
+        queryOptions.activeSince = new Date(options.activeSince);
+        if (isNaN(queryOptions.activeSince.getTime())) {
+          console.error('❌ Invalid activeSince date format. Use ISO 8601 format (e.g., 2024-01-01T00:00:00Z)');
+          process.exit(1);
+        }
+      }
+
+      if (options.activeUntil) {
+        queryOptions.activeUntil = new Date(options.activeUntil);
+        if (isNaN(queryOptions.activeUntil.getTime())) {
+          console.error('❌ Invalid activeUntil date format. Use ISO 8601 format (e.g., 2024-01-01T00:00:00Z)');
+          process.exit(1);
+        }
+      }
+
+      // Parse properties
+      if (options.properties) {
+        try {
+          queryOptions.properties = JSON.parse(options.properties);
+        } catch {
+          console.error('❌ Invalid properties JSON');
+          process.exit(1);
+        }
+      }
+
+      // Parse sorting
+      if (options.sortBy) {
+        if (!['firstSeen', 'lastSeen', 'eventCount', 'sessionCount'].includes(options.sortBy)) {
+          console.error('❌ Invalid sortBy. Must be one of: firstSeen, lastSeen, eventCount, sessionCount');
+          process.exit(1);
+        }
+        queryOptions.sortBy = options.sortBy;
+      }
+
+      if (options.sortOrder) {
+        if (!['asc', 'desc'].includes(options.sortOrder)) {
+          console.error('❌ Invalid sortOrder. Must be either "asc" or "desc"');
+          process.exit(1);
+        }
+        queryOptions.sortOrder = options.sortOrder;
+      }
+
+      // Parse pagination
+      const limit = parseInt(options.limit, 10);
+      if (isNaN(limit) || limit <= 0) {
+        console.error('❌ Invalid limit. Must be a positive integer');
+        process.exit(1);
+      }
+      queryOptions.limit = limit;
+
+      const offset = parseInt(options.offset, 10);
+      if (isNaN(offset) || offset < 0) {
+        console.error('❌ Invalid offset. Must be a non-negative integer');
+        process.exit(1);
+      }
+      queryOptions.offset = offset;
+
+      // Parse format
+      if (!['json', 'table'].includes(options.format)) {
+        console.error('❌ Invalid format. Must be either "json" or "table"');
+        process.exit(1);
+      }
+      queryOptions.format = options.format;
+
+      const result = await sdkWrapper.queryUsers(queryOptions);
+
+      if (options.format === 'table') {
+        console.log(`👥 Found ${result.totalCount} users (showing ${result.users.length})`);
+        console.log('');
+        
+        if (result.users.length === 0) {
+          console.log('No users found matching the criteria.');
+        } else {
+          // Simple table format
+          console.log('User ID'.padEnd(20) + 'First Seen'.padEnd(25) + 'Last Seen'.padEnd(25) + 'Events'.padEnd(10) + 'Sessions');
+          console.log('-'.repeat(90));
+          
+          for (const user of result.users) {
+            const userId = user.userId.padEnd(20);
+            const firstSeen = user.firstSeen.toISOString().padEnd(25);
+            const lastSeen = user.lastSeen.toISOString().padEnd(25);
+            const eventCount = user.eventCount.toString().padEnd(10);
+            const sessionCount = user.sessionCount.toString();
+            
+            console.log(`${userId}${firstSeen}${lastSeen}${eventCount}${sessionCount}`);
+          }
+        }
+        
+        console.log('');
+        console.log(`📄 Page: ${Math.floor(result.pagination.offset / result.pagination.limit) + 1}`);
+        console.log(`⏱️  Query time: ${result.executionTime}ms`);
+        
+        if (result.hasMore) {
+          console.log(`➡️  Use --offset ${result.pagination.nextOffset} for next page`);
+        }
+      } else {
+        console.log(JSON.stringify(result, null, 2));
+      }
+    } catch (error) {
+      console.error('❌ Query users error:', error instanceof Error ? error.message : error);
+      process.exit(1);
+    }
+  });
+
 program.parse();

@@ -1,10 +1,12 @@
 export class HttpClient {
   private baseUrl: string;
   private apiToken?: string;
+  private tenantId?: string;
 
-  constructor(baseUrl: string, apiToken?: string) {
+  constructor(baseUrl: string, apiToken?: string, tenantId?: string) {
     this.baseUrl = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
     this.apiToken = apiToken;
+    this.tenantId = tenantId;
   }
 
   async post(endpoint: string, data: any): Promise<any> {
@@ -15,6 +17,10 @@ export class HttpClient {
 
     if (this.apiToken) {
       headers['Authorization'] = `Bearer ${this.apiToken}`;
+    }
+
+    if (this.tenantId) {
+      headers['x-tenant-id'] = this.tenantId;
     }
 
     try {
@@ -43,6 +49,10 @@ export class HttpClient {
 
     if (this.apiToken) {
       headers['Authorization'] = `Bearer ${this.apiToken}`;
+    }
+
+    if (this.tenantId) {
+      headers['x-tenant-id'] = this.tenantId;
     }
 
     try {

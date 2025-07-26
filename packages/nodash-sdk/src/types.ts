@@ -1,6 +1,7 @@
 export interface NodashConfig {
   baseUrl: string;
   apiToken?: string;
+  tenantId?: string;
   environment?: string;
 }
 
@@ -55,4 +56,88 @@ export interface RecordingOptions {
 export interface RecordingResult {
   snapshot: EventSnapshot;
   filePath?: string;
+}
+
+// Query types
+export interface QueryOptions {
+  // Filtering
+  eventTypes?: string[];
+  userId?: string;
+  startDate?: Date;
+  endDate?: Date;
+  properties?: Record<string, any>;
+  
+  // Sorting
+  sortBy?: 'timestamp' | 'eventName' | 'userId';
+  sortOrder?: 'asc' | 'desc';
+  
+  // Pagination
+  limit?: number;
+  offset?: number;
+  
+  // Output formatting
+  format?: 'json' | 'table' | 'csv';
+}
+
+export interface UserQueryOptions {
+  // Filtering
+  userId?: string;
+  activeSince?: Date;
+  activeUntil?: Date;
+  properties?: Record<string, any>;
+  
+  // Sorting
+  sortBy?: 'firstSeen' | 'lastSeen' | 'eventCount' | 'sessionCount';
+  sortOrder?: 'asc' | 'desc';
+  
+  // Pagination
+  limit?: number;
+  offset?: number;
+  
+  // Output formatting
+  format?: 'json' | 'table' | 'csv';
+}
+
+export interface AnalyticsEvent {
+  eventId: string;
+  tenantId: string;
+  userId?: string;
+  eventName: string;
+  properties: Record<string, any>;
+  timestamp: Date;
+  receivedAt: Date;
+  sessionId?: string;
+  deviceId?: string;
+}
+
+export interface UserRecord {
+  userId: string;
+  tenantId: string;
+  properties: Record<string, any>;
+  firstSeen: Date;
+  lastSeen: Date;
+  sessionCount: number;
+  eventCount: number;
+}
+
+export interface PaginationInfo {
+  limit: number;
+  offset: number;
+  nextOffset?: number;
+}
+
+export interface QueryResult {
+  events: AnalyticsEvent[];
+  totalCount: number;
+  hasMore: boolean;
+  pagination: PaginationInfo;
+  executionTime: number;
+}
+
+export interface UserQueryResult {
+  users: UserRecord[];
+  totalCount: number;
+  hasMore: boolean;
+  pagination: PaginationInfo;
+  executionTime: number;
 }

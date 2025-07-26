@@ -1,4 +1,4 @@
-import { NodashSDK, EventSnapshot, RecordingResult, Event } from '@nodash/sdk';
+import { NodashSDK, EventSnapshot, RecordingResult, Event, QueryOptions, UserQueryOptions, QueryResult, UserQueryResult } from '@nodash/sdk';
 import { ConfigManager } from './config';
 import { FileRecorder } from './file-recorder';
 import { getDefaultRecordingPath } from '@nodash/sdk';
@@ -113,5 +113,15 @@ export class SDKWrapper {
   async replay(snapshot: EventSnapshot, options?: { url?: string; dryRun?: boolean }): Promise<void> {
     const sdk = this.createSDK();
     await sdk.replay(snapshot, options);
+  }
+
+  async queryEvents(options: QueryOptions): Promise<QueryResult> {
+    const sdk = this.createSDK();
+    return await sdk.queryEvents(options);
+  }
+
+  async queryUsers(options: UserQueryOptions): Promise<UserQueryResult> {
+    const sdk = this.createSDK();
+    return await sdk.queryUsers(options);
   }
 }

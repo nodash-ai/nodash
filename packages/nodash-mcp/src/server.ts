@@ -161,6 +161,134 @@ class NodashMCPServer {
               },
               required: ['filePath']
             }
+          },
+          {
+            name: 'query_events',
+            description: 'Query events with comprehensive filtering for AI analysis',
+            inputSchema: {
+              type: 'object',
+              properties: {
+                eventTypes: {
+                  type: 'array',
+                  items: { type: 'string' },
+                  description: 'Filter by event types (e.g., ["page_view", "click"])'
+                },
+                userId: {
+                  type: 'string',
+                  description: 'Filter by specific user ID'
+                },
+                startDate: {
+                  type: 'string',
+                  description: 'Start date in ISO 8601 format (e.g., "2024-01-01T00:00:00Z")'
+                },
+                endDate: {
+                  type: 'string',
+                  description: 'End date in ISO 8601 format (e.g., "2024-01-31T23:59:59Z")'
+                },
+                properties: {
+                  type: 'object',
+                  description: 'Filter by event properties (key-value pairs)'
+                },
+                sortBy: {
+                  type: 'string',
+                  enum: ['timestamp', 'eventName', 'userId'],
+                  description: 'Sort events by field'
+                },
+                sortOrder: {
+                  type: 'string',
+                  enum: ['asc', 'desc'],
+                  description: 'Sort order (ascending or descending)'
+                },
+                limit: {
+                  type: 'number',
+                  description: 'Maximum number of events to return (default: 100, max: 1000)'
+                },
+                offset: {
+                  type: 'number',
+                  description: 'Number of events to skip for pagination (default: 0)'
+                }
+              }
+            }
+          },
+          {
+            name: 'query_users',
+            description: 'Query users with activity filters for AI insights',
+            inputSchema: {
+              type: 'object',
+              properties: {
+                userId: {
+                  type: 'string',
+                  description: 'Filter by specific user ID'
+                },
+                activeSince: {
+                  type: 'string',
+                  description: 'Filter users active since date in ISO 8601 format'
+                },
+                activeUntil: {
+                  type: 'string',
+                  description: 'Filter users active until date in ISO 8601 format'
+                },
+                properties: {
+                  type: 'object',
+                  description: 'Filter by user properties (key-value pairs)'
+                },
+                sortBy: {
+                  type: 'string',
+                  enum: ['firstSeen', 'lastSeen', 'eventCount', 'sessionCount'],
+                  description: 'Sort users by field'
+                },
+                sortOrder: {
+                  type: 'string',
+                  enum: ['asc', 'desc'],
+                  description: 'Sort order (ascending or descending)'
+                },
+                limit: {
+                  type: 'number',
+                  description: 'Maximum number of users to return (default: 100, max: 1000)'
+                },
+                offset: {
+                  type: 'number',
+                  description: 'Number of users to skip for pagination (default: 0)'
+                }
+              }
+            }
+          },
+          {
+            name: 'analyze_events',
+            description: 'Advanced event analysis for AI insights and patterns',
+            inputSchema: {
+              type: 'object',
+              properties: {
+                analysisType: {
+                  type: 'string',
+                  enum: ['summary', 'trends', 'user_behavior', 'event_patterns'],
+                  description: 'Type of analysis to perform'
+                },
+                eventTypes: {
+                  type: 'array',
+                  items: { type: 'string' },
+                  description: 'Focus analysis on specific event types'
+                },
+                timeRange: {
+                  type: 'object',
+                  properties: {
+                    start: { type: 'string', description: 'Start date in ISO 8601 format' },
+                    end: { type: 'string', description: 'End date in ISO 8601 format' }
+                  },
+                  description: 'Time range for analysis'
+                },
+                groupBy: {
+                  type: 'string',
+                  enum: ['hour', 'day', 'week', 'month', 'eventType', 'userId'],
+                  description: 'Group analysis results by time period or dimension'
+                },
+                limit: {
+                  type: 'number',
+                  description: 'Maximum number of results to analyze (default: 1000)'
+                }
+              },
+              required: ['analysisType']
+            }
           }
         ]
       };
@@ -241,6 +369,15 @@ class NodashMCPServer {
 
         case 'replay_session':
           return await this.replaySession((args as any).filePath, (args as any).url, (args as any).dryRun);
+
+        case 'query_events':
+          return await this.queryEvents(args as any);
+
+        case 'query_users':
+          return await this.queryUsers(args as any);
+
+        case 'analyze_events':
+          return await this.analyzeEvents(args as any);
 
         default:
           throw new Error(`Unknown tool: ${name}`);
@@ -520,6 +657,527 @@ class NodashMCPServer {
         }]
       };
     }
+  }
+
+  private async queryEvents(params: {
+    eventTypes?: string[];
+    userId?: string;
+    startDate?: string;
+    endDate?: string;
+    properties?: Record<string, any>;
+    sortBy?: string;
+    sortOrder?: string;
+    limit?: number;
+    offset?: number;
+  }): Promise<{ content: Array<{ type: string; text: string }> }> {
+    try {
+      const args = ['events'];
+
+      // Add filtering parameters
+      if (params.eventTypes && params.eventTypes.length > 0) {
+        args.push('--type', params.eventTypes.join(','));
+      }
+
+      if (params.userId) {
+        args.push('--user-id', params.userId);
+      }
+
+      if (params.startDate) {
+        args.push('--start', params.startDate);
+      }
+
+      if (params.endDate) {
+        args.push('--end', params.endDate);
+      }
+
+      if (params.properties) {
+        args.push('--properties', JSON.stringify(params.properties));
+      }
+
+      // Add sorting parameters
+      if (params.sortBy) {
+        args.push('--sort-by', params.sortBy);
+      }
+
+      if (params.sortOrder) {
+        args.push('--sort-order', params.sortOrder);
+      }
+
+      // Add pagination parameters
+      if (params.limit) {
+        args.push('--limit', params.limit.toString());
+      }
+
+      if (params.offset !== undefined) {
+        args.push('--offset', params.offset.toString());
+      }
+
+      // Always use JSON format for MCP
+      args.push('--format', 'json');
+
+      const result = await this.runCliCommandInternal('query', args);
+      
+      if (result.success) {
+        // Parse the JSON output from CLI
+        try {
+          const queryResult = JSON.parse(result.output);
+          return {
+            content: [{
+              type: "text",
+              text: JSON.stringify({
+                success: true,
+                data: queryResult,
+                summary: {
+                  totalEvents: queryResult.totalCount,
+                  returnedEvents: queryResult.events.length,
+                  hasMore: queryResult.hasMore,
+                  executionTime: queryResult.executionTime
+                }
+              }, null, 2)
+            }]
+          };
+        } catch (parseError) {
+          // If parsing fails, return raw output
+          return {
+            content: [{
+              type: "text",
+              text: JSON.stringify({
+                success: true,
+                rawOutput: result.output
+              }, null, 2)
+            }]
+          };
+        }
+      } else {
+        return {
+          content: [{
+            type: "text",
+            text: JSON.stringify({
+              success: false,
+              error: result.error,
+              message: 'Failed to query events'
+            }, null, 2)
+          }]
+        };
+      }
+    } catch (error) {
+      return {
+        content: [{
+          type: "text",
+          text: JSON.stringify({
+            success: false,
+            message: `Query events failed: ${error instanceof Error ? error.message : error}`,
+            error: error instanceof Error ? error.message : String(error)
+          }, null, 2)
+        }]
+      };
+    }
+  }
+
+  private async queryUsers(params: {
+    userId?: string;
+    activeSince?: string;
+    activeUntil?: string;
+    properties?: Record<string, any>;
+    sortBy?: string;
+    sortOrder?: string;
+    limit?: number;
+    offset?: number;
+  }): Promise<{ content: Array<{ type: string; text: string }> }> {
+    try {
+      const args = ['users'];
+
+      // Add filtering parameters
+      if (params.userId) {
+        args.push('--user-id', params.userId);
+      }
+
+      if (params.activeSince) {
+        args.push('--active-since', params.activeSince);
+      }
+
+      if (params.activeUntil) {
+        args.push('--active-until', params.activeUntil);
+      }
+
+      if (params.properties) {
+        args.push('--properties', JSON.stringify(params.properties));
+      }
+
+      // Add sorting parameters
+      if (params.sortBy) {
+        args.push('--sort-by', params.sortBy);
+      }
+
+      if (params.sortOrder) {
+        args.push('--sort-order', params.sortOrder);
+      }
+
+      // Add pagination parameters
+      if (params.limit) {
+        args.push('--limit', params.limit.toString());
+      }
+
+      if (params.offset !== undefined) {
+        args.push('--offset', params.offset.toString());
+      }
+
+      // Always use JSON format for MCP
+      args.push('--format', 'json');
+
+      const result = await this.runCliCommandInternal('query', args);
+      
+      if (result.success) {
+        // Parse the JSON output from CLI
+        try {
+          const queryResult = JSON.parse(result.output);
+          return {
+            content: [{
+              type: "text",
+              text: JSON.stringify({
+                success: true,
+                data: queryResult,
+                summary: {
+                  totalUsers: queryResult.totalCount,
+                  returnedUsers: queryResult.users.length,
+                  hasMore: queryResult.hasMore,
+                  executionTime: queryResult.executionTime
+                }
+              }, null, 2)
+            }]
+          };
+        } catch (parseError) {
+          // If parsing fails, return raw output
+          return {
+            content: [{
+              type: "text",
+              text: JSON.stringify({
+                success: true,
+                rawOutput: result.output
+              }, null, 2)
+            }]
+          };
+        }
+      } else {
+        return {
+          content: [{
+            type: "text",
+            text: JSON.stringify({
+              success: false,
+              error: result.error,
+              message: 'Failed to query users'
+            }, null, 2)
+          }]
+        };
+      }
+    } catch (error) {
+      return {
+        content: [{
+          type: "text",
+          text: JSON.stringify({
+            success: false,
+            message: `Query users failed: ${error instanceof Error ? error.message : error}`,
+            error: error instanceof Error ? error.message : String(error)
+          }, null, 2)
+        }]
+      };
+    }
+  }
+
+  private async analyzeEvents(params: {
+    analysisType: 'summary' | 'trends' | 'user_behavior' | 'event_patterns';
+    eventTypes?: string[];
+    timeRange?: { start: string; end: string };
+    groupBy?: 'hour' | 'day' | 'week' | 'month' | 'eventType' | 'userId';
+    limit?: number;
+  }): Promise<{ content: Array<{ type: string; text: string }> }> {
+    try {
+      // First, query events based on the parameters
+      const queryParams: any = {};
+      
+      if (params.eventTypes) {
+        queryParams.eventTypes = params.eventTypes;
+      }
+      
+      if (params.timeRange) {
+        queryParams.startDate = params.timeRange.start;
+        queryParams.endDate = params.timeRange.end;
+      }
+      
+      queryParams.limit = params.limit || 1000;
+      queryParams.sortBy = 'timestamp';
+      queryParams.sortOrder = 'desc';
+
+      // Get events using the query method
+      const eventsResult = await this.queryEvents(queryParams);
+      
+      // Parse the events from the result
+      let events: any[] = [];
+      try {
+        const parsedResult = JSON.parse(eventsResult.content[0]?.text || '{}');
+        if (parsedResult.success && parsedResult.data && parsedResult.data.events) {
+          events = parsedResult.data.events;
+        }
+      } catch (parseError) {
+        return {
+          content: [{
+            type: "text",
+            text: JSON.stringify({
+              success: false,
+              error: 'Failed to parse events for analysis',
+              message: 'Could not retrieve events for analysis'
+            }, null, 2)
+          }]
+        };
+      }
+
+      // Perform analysis based on type
+      let analysisResult: any = {};
+
+      switch (params.analysisType) {
+        case 'summary':
+          analysisResult = this.generateEventSummary(events);
+          break;
+        case 'trends':
+          analysisResult = this.generateTrendAnalysis(events, params.groupBy || 'day');
+          break;
+        case 'user_behavior':
+          analysisResult = this.generateUserBehaviorAnalysis(events);
+          break;
+        case 'event_patterns':
+          analysisResult = this.generateEventPatternAnalysis(events);
+          break;
+        default:
+          throw new Error(`Unknown analysis type: ${params.analysisType}`);
+      }
+
+      return {
+        content: [{
+          type: "text",
+          text: JSON.stringify({
+            success: true,
+            analysisType: params.analysisType,
+            data: analysisResult,
+            metadata: {
+              totalEventsAnalyzed: events.length,
+              timeRange: params.timeRange,
+              eventTypes: params.eventTypes,
+              groupBy: params.groupBy
+            }
+          }, null, 2)
+        }]
+      };
+    } catch (error) {
+      return {
+        content: [{
+          type: "text",
+          text: JSON.stringify({
+            success: false,
+            message: `Event analysis failed: ${error instanceof Error ? error.message : error}`,
+            error: error instanceof Error ? error.message : String(error)
+          }, null, 2)
+        }]
+      };
+    }
+  }
+
+  private generateEventSummary(events: any[]): any {
+    const summary = {
+      totalEvents: events.length,
+      uniqueUsers: new Set(events.map(e => e.userId).filter(Boolean)).size,
+      eventTypes: {} as Record<string, number>,
+      timeRange: {
+        earliest: null as string | null,
+        latest: null as string | null
+      },
+      topProperties: {} as Record<string, number>
+    };
+
+    // Count event types
+    events.forEach(event => {
+      summary.eventTypes[event.eventName] = (summary.eventTypes[event.eventName] || 0) + 1;
+    });
+
+    // Find time range
+    if (events.length > 0) {
+      const timestamps = events.map(e => new Date(e.timestamp).getTime()).sort((a, b) => a - b);
+      const earliest = timestamps[0];
+      const latest = timestamps[timestamps.length - 1];
+      if (earliest !== undefined) {
+        summary.timeRange.earliest = new Date(earliest).toISOString();
+      }
+      if (latest !== undefined) {
+        summary.timeRange.latest = new Date(latest).toISOString();
+      }
+    }
+
+    // Count top properties
+    events.forEach(event => {
+      Object.keys(event.properties || {}).forEach(key => {
+        summary.topProperties[key] = (summary.topProperties[key] || 0) + 1;
+      });
+    });
+
+    return summary;
+  }
+
+  private generateTrendAnalysis(events: any[], groupBy: string): any {
+    const trends: Record<string, number> = {};
+    
+    events.forEach(event => {
+      const date = new Date(event.timestamp);
+      let key: string;
+      
+      switch (groupBy) {
+        case 'hour':
+          key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')} ${String(date.getHours()).padStart(2, '0')}:00`;
+          break;
+        case 'day':
+          key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+          break;
+        case 'week':
+          const weekStart = new Date(date);
+          weekStart.setDate(date.getDate() - date.getDay());
+          key = `Week of ${weekStart.getFullYear()}-${String(weekStart.getMonth() + 1).padStart(2, '0')}-${String(weekStart.getDate()).padStart(2, '0')}`;
+          break;
+        case 'month':
+          key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+          break;
+        case 'eventType':
+          key = event.eventName;
+          break;
+        case 'userId':
+          key = event.userId || 'anonymous';
+          break;
+        default:
+          key = 'unknown';
+      }
+      
+      trends[key] = (trends[key] || 0) + 1;
+    });
+
+    return {
+      groupBy,
+      trends: Object.entries(trends)
+        .sort(([,a], [,b]) => b - a)
+        .slice(0, 50) // Limit to top 50 results
+        .map(([key, count]) => ({ [groupBy]: key, count }))
+    };
+  }
+
+  private generateUserBehaviorAnalysis(events: any[]): any {
+    const userStats: Record<string, any> = {};
+    
+    events.forEach(event => {
+      const userId = event.userId || 'anonymous';
+      
+      if (!userStats[userId]) {
+        userStats[userId] = {
+          userId,
+          eventCount: 0,
+          eventTypes: new Set(),
+          firstSeen: event.timestamp,
+          lastSeen: event.timestamp,
+          properties: new Set()
+        };
+      }
+      
+      const user = userStats[userId];
+      user.eventCount++;
+      user.eventTypes.add(event.eventName);
+      
+      if (new Date(event.timestamp) < new Date(user.firstSeen)) {
+        user.firstSeen = event.timestamp;
+      }
+      if (new Date(event.timestamp) > new Date(user.lastSeen)) {
+        user.lastSeen = event.timestamp;
+      }
+      
+      Object.keys(event.properties || {}).forEach(key => {
+        user.properties.add(key);
+      });
+    });
+
+    // Convert sets to arrays and calculate additional metrics
+    const behaviorAnalysis = Object.values(userStats).map((user: any) => ({
+      userId: user.userId,
+      eventCount: user.eventCount,
+      uniqueEventTypes: user.eventTypes.size,
+      eventTypes: Array.from(user.eventTypes),
+      firstSeen: user.firstSeen,
+      lastSeen: user.lastSeen,
+      sessionDuration: new Date(user.lastSeen).getTime() - new Date(user.firstSeen).getTime(),
+      uniqueProperties: user.properties.size
+    }));
+
+    return {
+      totalUsers: behaviorAnalysis.length,
+      topUsers: behaviorAnalysis
+        .sort((a, b) => b.eventCount - a.eventCount)
+        .slice(0, 20),
+      averageEventsPerUser: behaviorAnalysis.reduce((sum, user) => sum + user.eventCount, 0) / behaviorAnalysis.length,
+      averageEventTypesPerUser: behaviorAnalysis.reduce((sum, user) => sum + user.uniqueEventTypes, 0) / behaviorAnalysis.length
+    };
+  }
+
+  private generateEventPatternAnalysis(events: any[]): any {
+    const patterns = {
+      eventSequences: {} as Record<string, number>,
+      commonProperties: {} as Record<string, number>,
+      timePatterns: {
+        hourly: {} as Record<string, number>,
+        daily: {} as Record<string, number>
+      }
+    };
+
+    // Analyze event sequences (pairs of consecutive events)
+    for (let i = 0; i < events.length - 1; i++) {
+      const current = events[i].eventName;
+      const next = events[i + 1].eventName;
+      const sequence = `${current} → ${next}`;
+      patterns.eventSequences[sequence] = (patterns.eventSequences[sequence] || 0) + 1;
+    }
+
+    // Analyze common properties
+    events.forEach(event => {
+      Object.entries(event.properties || {}).forEach(([key, value]) => {
+        const propertyPattern = `${key}:${typeof value}`;
+        patterns.commonProperties[propertyPattern] = (patterns.commonProperties[propertyPattern] || 0) + 1;
+      });
+    });
+
+    // Analyze time patterns
+    events.forEach(event => {
+      const date = new Date(event.timestamp);
+      const hour = date.getHours();
+      const day = date.getDay(); // 0 = Sunday, 1 = Monday, etc.
+      
+      patterns.timePatterns.hourly[hour] = (patterns.timePatterns.hourly[hour] || 0) + 1;
+      patterns.timePatterns.daily[day] = (patterns.timePatterns.daily[day] || 0) + 1;
+    });
+
+    return {
+      topEventSequences: Object.entries(patterns.eventSequences)
+        .sort(([,a], [,b]) => b - a)
+        .slice(0, 10)
+        .map(([sequence, count]) => ({ sequence, count })),
+      topProperties: Object.entries(patterns.commonProperties)
+        .sort(([,a], [,b]) => b - a)
+        .slice(0, 20)
+        .map(([property, count]) => ({ property, count })),
+      timePatterns: {
+        peakHours: Object.entries(patterns.timePatterns.hourly)
+          .sort(([,a], [,b]) => b - a)
+          .slice(0, 5)
+          .map(([hour, count]) => ({ hour: parseInt(hour), count })),
+        peakDays: Object.entries(patterns.timePatterns.daily)
+          .sort(([,a], [,b]) => b - a)
+          .map(([day, count]) => ({ 
+            day: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][parseInt(day)], 
+            count 
+          }))
+      }
+    };
   }
 
   async start() {

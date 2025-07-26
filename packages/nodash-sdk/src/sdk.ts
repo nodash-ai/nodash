@@ -1,5 +1,5 @@
 import { HttpClient } from './http-client';
-import { NodashConfig, HealthStatus, TrackingEvent, IdentifyData, Event, EventSnapshot, ReplayOptions, RecordingOptions, RecordingResult } from './types';
+import { NodashConfig, HealthStatus, TrackingEvent, IdentifyData, Event, EventSnapshot, ReplayOptions, RecordingOptions, RecordingResult, QueryOptions, UserQueryOptions, QueryResult, UserQueryResult } from './types';
 import { Recorder } from './recorder';
 
 export class NodashSDK {
@@ -7,7 +7,7 @@ export class NodashSDK {
   private config: NodashConfig;
   private recorder: Recorder = new Recorder();
 
-  constructor(baseUrl: string, apiToken?: string) {
+  constructor(baseUrl: string, apiToken?: string, tenantId?: string) {
     // Validate baseUrl
     if (!baseUrl || typeof baseUrl !== 'string') {
       throw new Error('baseUrl is required and must be a string');
@@ -26,9 +26,10 @@ export class NodashSDK {
     this.config = {
       baseUrl: normalizedBaseUrl,
       apiToken,
+      tenantId,
     };
 
-    this.client = new HttpClient(normalizedBaseUrl, apiToken);
+    this.client = new HttpClient(normalizedBaseUrl, apiToken, tenantId);
   }
 
   /**
@@ -163,5 +164,113 @@ export class NodashSDK {
     if (errors.length > 0) {
       console.warn(`Replay completed with ${errors.length} errors`);
     }
+  }
+
+  /**
+   * Query events with filters
+   */
+  async queryEvents(options: QueryOptions = {}): Promise<QueryResult> {
+    const queryParams = new URLSearchParams();
+
+    // Add filtering parameters
+    if (options.eventTypes && options.eventTypes.length > 0) {
+      queryParams.append('eventTypes', options.eventTypes.join(','));
+    }
+
+    if (options.userId) {
+      queryParams.append('userId', options.userId);
+    }
+
+    if (options.startDate) {
+      queryParams.append('startDate', options.startDate.toISOString());
+    }
+
+    if (options.endDate) {
+      queryParams.append('endDate', options.endDate.toISOString());
+    }
+
+    if (options.properties) {
+      queryParams.append('properties', JSON.stringify(options.properties));
+    }
+
+    // Add sorting parameters
+    if (options.sortBy) {
+      queryParams.append('sortBy', options.sortBy);
+    }
+
+    if (options.sortOrder) {
+      queryParams.append('sortOrder', options.sortOrder);
+    }
+
+    // Add pagination parameters
+    if (options.limit) {
+      queryParams.append('limit', options.limit.toString());
+    }
+
+    if (options.offset) {
+      queryParams.append('offset', options.offset.toString());
+    }
+
+    // Add formatting parameters
+    if (options.format) {
+      queryParams.append('format', options.format);
+    }
+
+    const url = `/v1/events/query?${queryParams.toString()}`;
+    const response = await this.client.get(url);
+    
+    return response.data;
+  }
+
+  /**
+   * Query users with filters
+   */
+  async queryUsers(options: UserQueryOptions = {}): Promise<UserQueryResult> {
+    const queryParams = new URLSearchParams();
+
+    // Add filtering parameters
+    if (options.userId) {
+      queryParams.append('userId', options.userId);
+    }
+
+    if (options.activeSince) {
+      queryParams.append('activeSince', options.activeSince.toISOString());
+    }
+
+    if (options.activeUntil) {
+      queryParams.append('activeUntil', options.activeUntil.toISOString());
+    }
+
+    if (options.properties) {
+      queryParams.append('properties', JSON.stringify(options.properties));
+    }
+
+    // Add sorting parameters
+    if (options.sortBy) {
+      queryParams.append('sortBy', options.sortBy);
+    }
+
+    if (options.sortOrder) {
+      queryParams.append('sortOrder', options.sortOrder);
+    }
+
+    // Add pagination parameters
+    if (options.limit) {
+      queryParams.append('limit', options.limit.toString());
+    }
+
+    if (options.offset) {
+      queryParams.append('offset', options.offset.toString());
+    }
+
+    // Add formatting parameters
+    if (options.format) {
+      queryParams.append('format', options.format);
+    }
+
+    const url = `/v1/users/query?${queryParams.toString()}`;
+    const response = await this.client.get(url);
+    
+    return response.data;
   }
 }
