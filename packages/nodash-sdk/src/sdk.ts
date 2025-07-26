@@ -7,7 +7,7 @@ export class NodashSDK {
   private config: NodashConfig;
   private recorder: Recorder = new Recorder();
 
-  constructor(baseUrl: string, apiToken?: string, tenantId?: string) {
+  constructor(baseUrl: string, apiToken?: string) {
     // Validate baseUrl
     if (!baseUrl || typeof baseUrl !== 'string') {
       throw new Error('baseUrl is required and must be a string');
@@ -26,10 +26,9 @@ export class NodashSDK {
     this.config = {
       baseUrl: normalizedBaseUrl,
       apiToken,
-      tenantId,
     };
 
-    this.client = new HttpClient(normalizedBaseUrl, apiToken, tenantId);
+    this.client = new HttpClient(normalizedBaseUrl, apiToken);
   }
 
   /**

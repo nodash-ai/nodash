@@ -15,7 +15,7 @@ export class SDKWrapper {
 
   createSDK(): NodashSDK {
     const config = this.configManager.getConfig();
-    
+
     if (!config.baseUrl) {
       throw new Error(
         'No base URL configured. Run "nodash config set baseUrl <url>" first.'
@@ -40,13 +40,13 @@ export class SDKWrapper {
         properties: properties || {},
         timestamp: new Date(),
       };
-      
+
       const recordedEvent: Event = {
         type: 'track' as const,
         data: trackingEvent,
         timestamp: new Date()
       };
-      
+
       this.fileRecorder.addEvent(recordedEvent);
       return;
     }
@@ -64,13 +64,13 @@ export class SDKWrapper {
         traits: traits || {},
         timestamp: new Date(),
       };
-      
+
       const recordedEvent: Event = {
         type: 'identify' as const,
         data: identifyData,
         timestamp: new Date()
       };
-      
+
       this.fileRecorder.addEvent(recordedEvent);
       return;
     }
@@ -104,7 +104,7 @@ export class SDKWrapper {
     if (fileResult) {
       return fileResult;
     }
-    
+
     // Fall back to SDK memory recording
     const sdk = this.getSDK();
     return sdk.stopRecording();

@@ -1,7 +1,6 @@
 export interface NodashConfig {
   baseUrl: string;
   apiToken?: string;
-  tenantId?: string;
   environment?: string;
 }
 

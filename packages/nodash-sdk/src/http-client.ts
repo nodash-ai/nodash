@@ -3,10 +3,18 @@ export class HttpClient {
   private apiToken?: string;
   private tenantId?: string;
 
-  constructor(baseUrl: string, apiToken?: string, tenantId?: string) {
+  constructor(baseUrl: string, apiToken?: string) {
     this.baseUrl = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
     this.apiToken = apiToken;
-    this.tenantId = tenantId;
+    
+    // Auto-derive tenantId from API key if available
+    if (apiToken) {
+      // Extract tenant from API keys like "demo-api-key-tenant1" -> "tenant1"
+      const match = apiToken.match(/tenant(\d+)$/);
+      if (match) {
+        this.tenantId = `tenant${match[1]}`;
+      }
+    }
   }
 
   async post(endpoint: string, data: any): Promise<any> {

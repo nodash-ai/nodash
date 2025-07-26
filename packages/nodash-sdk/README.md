@@ -85,11 +85,14 @@ new NodashSDK(baseUrl: string, apiToken?: string)
 
 **Parameters:**
 - `baseUrl` (required): Your server URL. Must be a valid URL or we'll throw a tantrum.
-- `apiToken` (optional): Authentication token. Some servers need it, some don't. Life is complicated.
+- `apiToken` (optional): Authentication token. Some servers need it, some don't. Life is complicated. For multi-tenant servers, tenant information is automatically derived from the token pattern (e.g., `demo-api-key-tenant1` → `tenant1`).
 
 **Example:**
 ```typescript
-// With token (for the security-conscious)
+// With token (tenant auto-derived for multi-tenant servers)
+const sdk = new NodashSDK('https://api.yourserver.com', 'demo-api-key-tenant1');
+
+// With token only (for single-tenant servers)
 const sdk = new NodashSDK('https://api.yourserver.com', 'sk-your-secret-token');
 
 // Without token (living dangerously)
