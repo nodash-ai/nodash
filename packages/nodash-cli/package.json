@@ -1,6 +1,6 @@
 {
   "name": "@nodash/cli",
-  "version": "0.1.7",
+  "version": "0.1.8",
   "description": "CLI tool for nodash - developer layer",
   "main": "dist/cli.js",
   "types": "dist/cli.d.ts",
@@ -22,7 +22,7 @@
   "author": "Nodash Team",
   "license": "MIT",
   "dependencies": {
-    "@nodash/sdk": "^0.1.5",
+    "@nodash/sdk": "^0.1.7",
     "commander": "^11.0.0"
   },
   "devDependencies": {
