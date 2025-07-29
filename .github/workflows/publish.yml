@@ -1,0 +1,336 @@
+name: Publish to NPM
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+    inputs:
+      force_publish:
+        description: 'Force publish all packages (ignore version checks)'
+        required: false
+        default: false
+        type: boolean
+
+jobs:
+  check-versions:
+    name: Check Version Changes & Dependencies
+    runs-on: ubuntu-latest
+    outputs:
+      sdk-changed: ${{ steps.check.outputs.sdk-changed }}
+      cli-changed: ${{ steps.check.outputs.cli-changed }}
+      mcp-changed: ${{ steps.check.outputs.mcp-changed }}
+      any-changed: ${{ steps.check.outputs.any-changed }}
+      versions-consistent: ${{ steps.check.outputs.versions-consistent }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Check version consistency
+        run: |
+          echo "🔍 Checking version consistency..."
+          node scripts/version-bump.js --check || echo "Version inconsistencies detected"
+
+      - name: Check for version changes
+        id: check
+        run: |
+          set -e
+          
+          # Function to check if package version changed
+          check_version_change() {
+            local package_path="$1"
+            local package_name="$2"
+            
+            # Get current version
+            current_version=$(node -p "require('./packages/$package_path/package.json').version")
+            
+            # Check if this version exists on npm
+            if npm view "@nodash/$package_name@$current_version" version >/dev/null 2>&1; then
+              echo "false"
+            else
+              echo "true"
+            fi
+          }
+          
+          # Check version consistency
+          if node scripts/version-bump.js --check >/dev/null 2>&1; then
+            echo "versions-consistent=true" >> $GITHUB_OUTPUT
+          else
+            echo "versions-consistent=false" >> $GITHUB_OUTPUT
+            echo "⚠️ Version inconsistencies detected - this may cause dependency issues"
+          fi
+          
+          # Force publish override
+          if [ "${{ github.event.inputs.force_publish }}" = "true" ]; then
+            echo "sdk-changed=true" >> $GITHUB_OUTPUT
+            echo "cli-changed=true" >> $GITHUB_OUTPUT
+            echo "mcp-changed=true" >> $GITHUB_OUTPUT
+            echo "any-changed=true" >> $GITHUB_OUTPUT
+            echo "🚀 Force publish enabled - all packages will be published"
+            exit 0
+          fi
+          
+          # Check each package
+          sdk_changed=$(check_version_change "nodash-sdk" "sdk")
+          cli_changed=$(check_version_change "nodash-cli" "cli")
+          mcp_changed=$(check_version_change "nodash-mcp" "mcp")
+          
+          # Set outputs
+          echo "sdk-changed=$sdk_changed" >> $GITHUB_OUTPUT
+          echo "cli-changed=$cli_changed" >> $GITHUB_OUTPUT
+          echo "mcp-changed=$mcp_changed" >> $GITHUB_OUTPUT
+          
+          # For coordinated releases, if any package changes, we should consider republishing dependents
+          # to ensure they use the latest versions
+          if [ "$sdk_changed" = "true" ]; then
+            echo "📦 SDK changed - CLI and MCP should be republished to use latest SDK"
+            cli_changed="true"
+            mcp_changed="true"
+            echo "cli-changed=true" >> $GITHUB_OUTPUT
+            echo "mcp-changed=true" >> $GITHUB_OUTPUT
+          elif [ "$cli_changed" = "true" ]; then
+            echo "📦 CLI changed - MCP should be republished to use latest CLI"
+            mcp_changed="true"
+            echo "mcp-changed=true" >> $GITHUB_OUTPUT
+          fi
+          
+          # Check if any package changed
+          if [ "$sdk_changed" = "true" ] || [ "$cli_changed" = "true" ] || [ "$mcp_changed" = "true" ]; then
+            echo "any-changed=true" >> $GITHUB_OUTPUT
+            echo "📦 Version changes detected:"
+            [ "$sdk_changed" = "true" ] && echo "  - @nodash/sdk"
+            [ "$cli_changed" = "true" ] && echo "  - @nodash/cli" 
+            [ "$mcp_changed" = "true" ] && echo "  - @nodash/mcp"
+          else
+            echo "any-changed=false" >> $GITHUB_OUTPUT
+            echo "✅ No version changes detected - skipping publish"
+          fi
+
+  update-dependencies:
+    name: Update Package Dependencies
+    runs-on: ubuntu-latest
+    needs: check-versions
+    if: needs.check-versions.outputs.any-changed == 'true' && needs.check-versions.outputs.versions-consistent == 'false'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Update interdependency versions
+        run: |
+          echo "🔄 Updating package dependencies to ensure consistency..."
+          
+          # Get current versions
+          SDK_VERSION=$(node -p "require('./packages/nodash-sdk/package.json').version")
+          CLI_VERSION=$(node -p "require('./packages/nodash-cli/package.json').version")
+          MCP_VERSION=$(node -p "require('./packages/nodash-mcp/package.json').version")
+          
+          echo "Current versions:"
+          echo "  SDK: $SDK_VERSION"
+          echo "  CLI: $CLI_VERSION" 
+          echo "  MCP: $MCP_VERSION"
+          
+          # Update CLI to use current SDK version
+          node -e "
+            const pkg = require('./packages/nodash-cli/package.json');
+            if (pkg.dependencies['@nodash/sdk']) {
+              pkg.dependencies['@nodash/sdk'] = '^$SDK_VERSION';
+              require('fs').writeFileSync('./packages/nodash-cli/package.json', JSON.stringify(pkg, null, 2) + '\n');
+              console.log('Updated CLI to use SDK ^$SDK_VERSION');
+            }
+          "
+          
+          # Update MCP to use current SDK and CLI versions
+          node -e "
+            const pkg = require('./packages/nodash-mcp/package.json');
+            let updated = false;
+            if (pkg.dependencies['@nodash/sdk']) {
+              pkg.dependencies['@nodash/sdk'] = '^$SDK_VERSION';
+              updated = true;
+            }
+            if (pkg.dependencies['@nodash/cli']) {
+              pkg.dependencies['@nodash/cli'] = '^$CLI_VERSION';
+              updated = true;
+            }
+            if (updated) {
+              require('fs').writeFileSync('./packages/nodash-mcp/package.json', JSON.stringify(pkg, null, 2) + '\n');
+              console.log('Updated MCP to use SDK ^$SDK_VERSION and CLI ^$CLI_VERSION');
+            }
+          "
+
+      - name: Commit dependency updates
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          
+          if ! git diff --quiet; then
+            git add packages/*/package.json
+            git commit -m "chore: update package dependencies for coordinated release
+            
+            🤖 Auto-updated by publish workflow to ensure dependency consistency"
+            git push
+            echo "✅ Dependency updates committed and pushed"
+          else
+            echo "ℹ️ No dependency updates needed"
+          fi
+
+  publish-sdk:
+    name: Publish @nodash/sdk
+    runs-on: ubuntu-latest
+    needs: [check-versions, update-dependencies]
+    if: always() && needs.check-versions.outputs.sdk-changed == 'true' && (needs.update-dependencies.result == 'success' || needs.update-dependencies.result == 'skipped')
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          registry-url: 'https://registry.npmjs.org'
+          cache: 'npm'
+
+      - name: Pull latest changes (in case dependencies were updated)
+        run: git pull origin main
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build SDK
+        run: npm run build -w @nodash/sdk
+
+      - name: Publish SDK
+        run: |
+          cd packages/nodash-sdk
+          npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+  publish-cli:
+    name: Publish @nodash/cli
+    runs-on: ubuntu-latest
+    needs: [check-versions, update-dependencies, publish-sdk]
+    if: always() && needs.check-versions.outputs.cli-changed == 'true' && (needs.publish-sdk.result == 'success' || needs.publish-sdk.result == 'skipped') && (needs.update-dependencies.result == 'success' || needs.update-dependencies.result == 'skipped')
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          registry-url: 'https://registry.npmjs.org'
+          cache: 'npm'
+
+      - name: Pull latest changes (in case dependencies were updated)
+        run: git pull origin main
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build CLI
+        run: npm run build -w @nodash/cli
+
+      - name: Publish CLI
+        run: |
+          cd packages/nodash-cli
+          npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+  publish-mcp:
+    name: Publish @nodash/mcp
+    runs-on: ubuntu-latest
+    needs: [check-versions, update-dependencies, publish-sdk, publish-cli]
+    if: always() && needs.check-versions.outputs.mcp-changed == 'true' && (needs.publish-sdk.result == 'success' || needs.publish-sdk.result == 'skipped') && (needs.publish-cli.result == 'success' || needs.publish-cli.result == 'skipped') && (needs.update-dependencies.result == 'success' || needs.update-dependencies.result == 'skipped')
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          registry-url: 'https://registry.npmjs.org'
+          cache: 'npm'
+
+      - name: Pull latest changes (in case dependencies were updated)
+        run: git pull origin main
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build MCP
+        run: npm run build -w @nodash/mcp
+
+      - name: Publish MCP
+        run: |
+          cd packages/nodash-mcp
+          npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+  publish-summary:
+    name: Publish Summary
+    runs-on: ubuntu-latest
+    needs: [check-versions, update-dependencies, publish-sdk, publish-cli, publish-mcp]
+    if: always()
+    steps:
+      - name: Generate summary
+        run: |
+          echo "## 📦 NPM Publishing Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          if [ "${{ needs.check-versions.outputs.any-changed }}" = "false" ]; then
+            echo "ℹ️ **No version changes detected** - All packages are up to date on NPM" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "To force publish, manually trigger this workflow with the 'force_publish' option." >> $GITHUB_STEP_SUMMARY
+          else
+            # SDK Status
+            if [ "${{ needs.check-versions.outputs.sdk-changed }}" = "true" ]; then
+              if [ "${{ needs.publish-sdk.result }}" = "success" ]; then
+                echo "✅ **@nodash/sdk** - Published successfully" >> $GITHUB_STEP_SUMMARY
+              else
+                echo "❌ **@nodash/sdk** - Failed to publish" >> $GITHUB_STEP_SUMMARY
+              fi
+            else
+              echo "⏭️ **@nodash/sdk** - No version change, skipped" >> $GITHUB_STEP_SUMMARY
+            fi
+            
+            # CLI Status
+            if [ "${{ needs.check-versions.outputs.cli-changed }}" = "true" ]; then
+              if [ "${{ needs.publish-cli.result }}" = "success" ]; then
+                echo "✅ **@nodash/cli** - Published successfully" >> $GITHUB_STEP_SUMMARY
+              else
+                echo "❌ **@nodash/cli** - Failed to publish" >> $GITHUB_STEP_SUMMARY
+              fi
+            else
+              echo "⏭️ **@nodash/cli** - No version change, skipped" >> $GITHUB_STEP_SUMMARY
+            fi
+            
+            # MCP Status
+            if [ "${{ needs.check-versions.outputs.mcp-changed }}" = "true" ]; then
+              if [ "${{ needs.publish-mcp.result }}" = "success" ]; then
+                echo "✅ **@nodash/mcp** - Published successfully" >> $GITHUB_STEP_SUMMARY
+              else
+                echo "❌ **@nodash/mcp** - Failed to publish" >> $GITHUB_STEP_SUMMARY
+              fi
+            else
+              echo "⏭️ **@nodash/mcp** - No version change, skipped" >> $GITHUB_STEP_SUMMARY
+            fi
+          fi
+          
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "_Publishing workflow completed at $(date)_" >> $GITHUB_STEP_SUMMARY

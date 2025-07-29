@@ -19,7 +19,12 @@
     "test:integration": "vitest run --config vitest.integration.config.ts",
     "test:e2e": "vitest run --config vitest.e2e.config.ts",
     "typecheck": "tsc --build",
-    "build:check": "npm run build --workspaces"
+    "build:check": "npm run build --workspaces",
+    "version:check": "node scripts/version-bump.js --check",
+    "version:status": "node scripts/version-bump.js --status",
+    "version:patch": "node scripts/version-bump.js patch",
+    "version:minor": "node scripts/version-bump.js minor",
+    "version:major": "node scripts/version-bump.js major"
   },
   "devDependencies": {
     "typescript": "^5.0.0",
