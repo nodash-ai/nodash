@@ -1,6 +1,6 @@
 {
   "name": "@nodash/sdk",
-  "version": "0.1.8",
+  "version": "0.1.9",
   "description": "Minimal SDK for nodash - the foundation layer",
   "main": "dist/index.js",
   "module": "dist/index.esm.js",

@@ -113,6 +113,65 @@ function checkVersionConsistency() {
   }
 }
 
+function syncAllVersions(targetVersion) {
+  console.log(`🚀 Syncing all package versions to ${targetVersion}...\n`);
+  
+  const newVersions = {};
+  
+  // Set all packages to the same version
+  for (const pkg of PACKAGES) {
+    const packageJson = readPackageJson(pkg.path);
+    if (packageJson) {
+      newVersions[pkg.name] = targetVersion;
+      console.log(`📦 ${pkg.name}: ${packageJson.version} → ${targetVersion}`);
+    }
+  }
+  
+  // Update package.json files with new versions and dependencies
+  for (const pkg of PACKAGES) {
+    const packageJson = readPackageJson(pkg.path);
+    if (packageJson) {
+      // Update own version
+      packageJson.version = newVersions[pkg.name];
+      
+      // Update dependencies to other nodash packages
+      if (packageJson.dependencies) {
+        for (const depName of Object.keys(packageJson.dependencies)) {
+          if (newVersions[depName]) {
+            packageJson.dependencies[depName] = `^${newVersions[depName]}`;
+          }
+        }
+      }
+      
+      writePackageJson(pkg.path, packageJson);
+    }
+  }
+  
+  // Update external dependents
+  for (const pkg of EXTERNAL_DEPENDENTS) {
+    const packageJson = readPackageJson(pkg.path);
+    if (packageJson) {
+      let updated = false;
+      
+      if (packageJson.dependencies) {
+        for (const depName of Object.keys(packageJson.dependencies)) {
+          if (newVersions[depName]) {
+            packageJson.dependencies[depName] = `^${newVersions[depName]}`;
+            updated = true;
+          }
+        }
+      }
+      
+      if (updated) {
+        writePackageJson(pkg.path, packageJson);
+        console.log(`📦 Updated ${pkg.name} dependencies`);
+      }
+    }
+  }
+  
+  console.log('\n✅ All versions synced successfully!');
+}
+
 function bumpAllVersions(bumpType) {
   console.log(`🚀 Bumping all package versions (${bumpType})...\n`);
   
@@ -212,7 +271,7 @@ const args = process.argv.slice(2);
 const command = args[0];
 
 if (!command) {
-  console.log('Usage: node scripts/version-bump.js <patch|minor|major|--check|--status>');
+  console.log('Usage: node scripts/version-bump.js <patch|minor|major|sync <version>|--check|--status>');
   process.exit(1);
 }
 
@@ -228,7 +287,15 @@ switch (command) {
   case 'major':
     bumpAllVersions(command);
     break;
+  case 'sync':
+    const targetVersion = args[1];
+    if (!targetVersion) {
+      console.log('❌ Target version required. Usage: node scripts/version-bump.js sync 0.1.9');
+      process.exit(1);
+    }
+    syncAllVersions(targetVersion);
+    break;
   default:
-    console.log('❌ Invalid command. Use: patch, minor, major, --check, or --status');
+    console.log('❌ Invalid command. Use: patch, minor, major, sync <version>, --check, or --status');
     process.exit(1);
 }

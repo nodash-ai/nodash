@@ -22,7 +22,7 @@
   "author": "Nodash Team",
   "license": "MIT",
   "dependencies": {
-    "@nodash/sdk": "^0.1.8",
+    "@nodash/sdk": "^0.1.9",
     "commander": "^11.0.0"
   },
   "devDependencies": {
