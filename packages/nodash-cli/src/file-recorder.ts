@@ -1,5 +1,5 @@
 import * as fs from 'fs';
-import { Event, EventSnapshot } from '@nodash/sdk';
+import { Event, EventSnapshot, RecordingResult } from '@nodash/sdk';
 import { RecordingStateManager } from './recording-state';
 
 export class FileRecorder {
@@ -22,7 +22,7 @@ export class FileRecorder {
     fs.writeFileSync(filePath, JSON.stringify(initialContent, null, 2));
   }
 
-  stopRecording(): { snapshot: EventSnapshot; filePath: string } | null {
+  stopRecording(): RecordingResult | null {
     const activeRecording = this.stateManager.getActiveRecording();
     if (!activeRecording) {
       return null;
@@ -33,13 +33,17 @@ export class FileRecorder {
     const snapshot = JSON.parse(fileContent) as EventSnapshot;
     
     // Update final timestamp
-    snapshot.recordedAt = new Date();
+    const recordedAt = new Date();
+    snapshot.recordedAt = recordedAt;
     fs.writeFileSync(activeRecording.filePath, JSON.stringify(snapshot, null, 2));
 
     this.stateManager.clearActiveRecording();
     
+    // Return flattened RecordingResult structure
     return {
-      snapshot,
+      events: snapshot.events,
+      recordedAt,
+      totalEvents: snapshot.totalEvents,
       filePath: activeRecording.filePath
     };
   }

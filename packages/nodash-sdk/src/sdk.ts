@@ -7,10 +7,15 @@ export class NodashSDK {
   private config: NodashConfig;
   private recorder: Recorder = new Recorder();
 
-  constructor(baseUrl: string, apiToken?: string) {
+  constructor(baseUrl: string, apiToken?: string, options?: { headers?: Record<string, string> }) {
     // Validate baseUrl
     if (!baseUrl || typeof baseUrl !== 'string') {
       throw new Error('baseUrl is required and must be a string');
+    }
+
+    // Validate apiToken
+    if (apiToken !== undefined && (!apiToken || typeof apiToken !== 'string')) {
+      throw new Error('apiToken is required and must be a string');
     }
 
     // Basic URL validation
@@ -23,12 +28,15 @@ export class NodashSDK {
     // Normalize baseUrl by removing trailing slash
     const normalizedBaseUrl = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
 
+    const customHeaders = options?.headers;
+
     this.config = {
       baseUrl: normalizedBaseUrl,
       apiToken,
+      customHeaders,
     };
 
-    this.client = new HttpClient(normalizedBaseUrl, apiToken);
+    this.client = new HttpClient(normalizedBaseUrl, apiToken, customHeaders);
   }
 
   /**
@@ -41,7 +49,7 @@ export class NodashSDK {
   /**
    * Track an event
    */
-  async track(event: string, properties?: Record<string, any>, userId?: string): Promise<void> {
+  async track(event: string, properties?: Record<string, any>, userId?: string): Promise<any> {
     if (!event || typeof event !== 'string') {
       throw new Error('event name is required and must be a string');
     }
@@ -61,16 +69,29 @@ export class NodashSDK {
         timestamp: new Date()
       };
       this.recorder.addEvent(recordedEvent);
-      return;
+      return { success: true, recorded: true };
     }
 
-    await this.client.post('/track', trackingEvent);
+    const response = await this.client.post('/track', trackingEvent);
+    
+    // Normalize API response format for consistent SDK interface
+    if (response && typeof response === 'object') {
+      return {
+        success: response.success,
+        id: response.eventId || response.id,
+        message: response.message || 'Event tracked successfully',
+        timestamp: response.timestamp,
+        requestId: response.requestId
+      };
+    }
+    
+    return response;
   }
 
   /**
    * Identify a user
    */
-  async identify(userId: string, traits?: Record<string, any>): Promise<void> {
+  async identify(userId: string, traits?: Record<string, any>): Promise<any> {
     if (!userId || typeof userId !== 'string') {
       throw new Error('userId is required and must be a string');
     }
@@ -89,10 +110,10 @@ export class NodashSDK {
         timestamp: new Date()
       };
       this.recorder.addEvent(recordedEvent);
-      return;
+      return { success: true, recorded: true };
     }
 
-    await this.client.post('/identify', identifyData);
+    return await this.client.post('/identify', identifyData);
   }
 
   /**
@@ -100,6 +121,13 @@ export class NodashSDK {
    */
   async health(): Promise<HealthStatus> {
     return await this.client.get('/health');
+  }
+
+  /**
+   * Check if recording is currently active
+   */
+  isRecording(): boolean {
+    return this.recorder.isActive();
   }
 
   /**
@@ -123,8 +151,8 @@ export class NodashSDK {
   /**
    * Replay events from a snapshot or file
    */
-  async replay(snapshotOrPath: EventSnapshot | string, options?: ReplayOptions): Promise<void> {
-    const errors: Error[] = [];
+  async replay(snapshotOrPath: EventSnapshot | string, options?: ReplayOptions): Promise<any[]> {
+    const results: any[] = [];
     
     // If string is provided, read from file
     let snapshot: EventSnapshot;
@@ -141,28 +169,33 @@ export class NodashSDK {
         if (options?.dryRun) {
           // Log event without sending HTTP request
           console.log(`[DRY RUN] ${event.type}:`, event.data);
+          results.push({ success: true, replayed: true, dryRun: true });
           continue;
         }
 
         // Create temporary client with custom URL if provided
         const client = options?.url 
-          ? new HttpClient(options.url, this.config.apiToken)
+          ? new HttpClient(options.url, this.config.apiToken, this.config.customHeaders)
           : this.client;
 
+        let result;
         if (event.type === 'track') {
-          await client.post('/track', event.data);
+          result = await client.post('/track', event.data);
         } else if (event.type === 'identify') {
-          await client.post('/identify', event.data);
+          result = await client.post('/identify', event.data);
         }
+        
+        results.push({ ...result, replayed: true });
       } catch (error) {
-        errors.push(error instanceof Error ? error : new Error(String(error)));
+        results.push({ 
+          success: false, 
+          error: error instanceof Error ? error.message : String(error),
+          replayed: false 
+        });
       }
     }
 
-    // If there were errors, throw the first one but continue processing
-    if (errors.length > 0) {
-      console.warn(`Replay completed with ${errors.length} errors`);
-    }
+    return results;
   }
 
   /**

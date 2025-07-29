@@ -178,7 +178,10 @@ recordCommand
   .action(async (options: { out?: string }) => {
     try {
       const result = sdkWrapper.stopRecording();
-      const { snapshot, filePath } = result;
+      const { events, recordedAt, totalEvents, filePath } = result;
+
+      // Create snapshot object for compatibility
+      const snapshot = { events, recordedAt, totalEvents };
 
       if (options.out) {
         // User specified output file
@@ -186,11 +189,11 @@ recordCommand
         const output = JSON.stringify(snapshot, null, 2);
         fs.writeFileSync(options.out, output);
         console.log(`✅ Session saved to ${options.out}`);
-        console.log(`📊 Recorded ${snapshot.totalEvents} events`);
+        console.log(`📊 Recorded ${totalEvents} events`);
       } else if (filePath) {
         // File was already written during recording
         console.log(`✅ Session saved to ${filePath}`);
-        console.log(`📊 Recorded ${snapshot.totalEvents} events`);
+        console.log(`📊 Recorded ${totalEvents} events`);
       } else {
         // Memory mode, output to stdout
         console.log(JSON.stringify(snapshot, null, 2));

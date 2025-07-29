@@ -2,6 +2,7 @@ export interface NodashConfig {
   baseUrl: string;
   apiToken?: string;
   environment?: string;
+  customHeaders?: Record<string, string>;
 }
 
 export interface HealthStatus {
@@ -53,7 +54,9 @@ export interface RecordingOptions {
 }
 
 export interface RecordingResult {
-  snapshot: EventSnapshot;
+  events: Event[];
+  recordedAt: Date;
+  totalEvents: number;
   filePath?: string;
 }
 

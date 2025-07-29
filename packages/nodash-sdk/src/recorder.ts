@@ -29,22 +29,51 @@ export class Recorder {
   private initializeFileStream(): void {
     if (!this.filePath) return;
     
-    // Write initial JSON structure
-    this.fileStream = fs.createWriteStream(this.filePath, { flags: 'w' });
-    this.fileStream.write('{"events":[\n');
+    try {
+      // Ensure directory exists
+      const dir = require('path').dirname(this.filePath);
+      if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir, { recursive: true });
+      }
+      
+      // Write initial JSON structure
+      this.fileStream = fs.createWriteStream(this.filePath, { flags: 'w' });
+      this.fileStream.write('{"events":[\n');
+    } catch (error) {
+      // If file creation fails, fall back to memory mode
+      console.warn('Failed to create recording file, falling back to memory mode:', error);
+      this.filePath = undefined;
+      this.fileStream = undefined;
+    }
   }
 
-  stop(): { snapshot: EventSnapshot; filePath?: string } {
+  stop(): { events: Event[]; recordedAt: Date; totalEvents: number; filePath?: string } {
     this.isRecording = false;
     
+    const events = [...this.events];
+    const recordedAt = new Date();
+    const totalEvents = this.events.length;
+    
     if (this.fileStream && this.filePath) {
-      // Finalize the file
-      this.finalizeFileStream();
+      // For file mode, save to file
+      const snapshot: EventSnapshot = {
+        events,
+        recordedAt,
+        totalEvents
+      };
       
-      // Read back the completed file for snapshot
-      const fileContent = fs.readFileSync(this.filePath, 'utf8');
-      const snapshot = JSON.parse(fileContent) as EventSnapshot;
-      const result = { snapshot, filePath: this.filePath };
+      // Write complete file synchronously
+      try {
+        const fileContent = JSON.stringify(snapshot, null, 2);
+        fs.writeFileSync(this.filePath, fileContent, 'utf8');
+      } catch (error) {
+        console.warn('Failed to write recording file:', error);
+      }
+      
+      // Close the stream properly
+      this.fileStream.end();
+      
+      const result = { events, recordedAt, totalEvents, filePath: this.filePath };
       
       // Cleanup
       this.fileStream = undefined;
@@ -54,12 +83,7 @@ export class Recorder {
       return result;
     } else {
       // Memory mode
-      const snapshot: EventSnapshot = {
-        events: [...this.events],
-        recordedAt: new Date(),
-        totalEvents: this.events.length
-      };
-      return { snapshot };
+      return { events, recordedAt, totalEvents };
     }
   }
 
@@ -73,6 +97,7 @@ export class Recorder {
     this.fileStream.write('}\n');
     this.fileStream.end();
   }
+
 
   addEvent(event: Event): void {
     if (!this.isRecording) {

@@ -32,7 +32,7 @@ export class SDKWrapper {
     return this.sdk;
   }
 
-  async track(event: string, properties?: Record<string, any>): Promise<void> {
+  async track(event: string, properties?: Record<string, any>): Promise<any> {
     // Check if file recording is active
     if (this.fileRecorder.isRecordingActive()) {
       const trackingEvent = {
@@ -48,15 +48,15 @@ export class SDKWrapper {
       };
 
       this.fileRecorder.addEvent(recordedEvent);
-      return;
+      return { success: true, recorded: true };
     }
 
     // Use the persistent SDK instance (for memory recording or regular HTTP)
     const sdk = this.getSDK();
-    await sdk.track(event, properties);
+    return await sdk.track(event, properties);
   }
 
-  async identify(userId: string, traits?: Record<string, any>): Promise<void> {
+  async identify(userId: string, traits?: Record<string, any>): Promise<any> {
     // Check if file recording is active
     if (this.fileRecorder.isRecordingActive()) {
       const identifyData = {
@@ -72,15 +72,15 @@ export class SDKWrapper {
       };
 
       this.fileRecorder.addEvent(recordedEvent);
-      return;
+      return { success: true, recorded: true };
     }
 
     // Use the persistent SDK instance (for memory recording or regular HTTP)
     const sdk = this.getSDK();
-    await sdk.identify(userId, traits);
+    return await sdk.identify(userId, traits);
   }
 
-  async health() {
+  async health(): Promise<any> {
     const sdk = this.createSDK();
     return await sdk.health();
   }

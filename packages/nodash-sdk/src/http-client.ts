@@ -2,10 +2,12 @@ export class HttpClient {
   private baseUrl: string;
   private apiToken?: string;
   private tenantId?: string;
+  private customHeaders?: Record<string, string>;
 
-  constructor(baseUrl: string, apiToken?: string) {
+  constructor(baseUrl: string, apiToken?: string, customHeaders?: Record<string, string>) {
     this.baseUrl = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
     this.apiToken = apiToken;
+    this.customHeaders = customHeaders;
     
     // Auto-derive tenantId from API key if available
     if (apiToken) {
@@ -29,6 +31,11 @@ export class HttpClient {
 
     if (this.tenantId) {
       headers['x-tenant-id'] = this.tenantId;
+    }
+
+    // Add custom headers
+    if (this.customHeaders) {
+      Object.assign(headers, this.customHeaders);
     }
 
     try {
@@ -61,6 +68,11 @@ export class HttpClient {
 
     if (this.tenantId) {
       headers['x-tenant-id'] = this.tenantId;
+    }
+
+    // Add custom headers
+    if (this.customHeaders) {
+      Object.assign(headers, this.customHeaders);
     }
 
     try {
