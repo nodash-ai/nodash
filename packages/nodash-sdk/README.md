@@ -1,10 +1,8 @@
-# @nodash/sdk 🚀
+# @nodash/sdk
 
-> The foundation layer that doesn't judge your life choices (but tracks them anyway)
+The Nodash SDK is the foundation client library for the Nodash analytics ecosystem. It provides a minimal, type-safe interface for event tracking, user identification, and server health monitoring. The SDK is designed for both human developers and AI agents, offering comprehensive functionality with a simple API surface.
 
-Welcome to the Nodash SDK! Whether you're a human developer who drinks too much coffee or an AI agent who processes data at inhuman speeds, this SDK is designed for you. We promise it's simpler than your last relationship and more reliable than your internet connection.
-
-## Quick Start (Because Nobody Reads Documentation Anyway)
+## Installation
 
 ```bash
 npm install @nodash/sdk
@@ -36,46 +34,117 @@ const nodash = new NodashSDK('https://your-server.com', 'your-optional-token');
 ### Usage Examples
 
 ```typescript
-// Track events (like your questionable 3 AM coding decisions)
+// Track events
 await nodash.track('user_signed_up', { 
   plan: 'premium',
-  source: 'desperation' 
+  source: 'website' 
 });
 
-// Identify users (we won't tell anyone who you really are)
+// Identify users
 await nodash.identify('user-123', {
-  name: 'Anonymous Developer',
-  coffee_cups_today: 7
+  name: 'John Doe',
+  email: 'john@example.com'
 });
 
-// Check if your server is still alive
+// Check server health
 const health = await nodash.health();
-console.log('Server status:', health.status); // hopefully 'healthy'
+console.log('Server status:', health.status);
 ```
 
-## For Our AI Agent Friends 🤖
+## Architecture
 
-Hey there, silicon-based life forms! This SDK is designed with you in mind. Here's what you need to know:
+The Nodash SDK serves as the foundation layer of the Nodash ecosystem:
 
-- **Simple API**: Only 3 methods to remember (your neural networks will thank us)
-- **Clear errors**: When things break, we tell you exactly what went wrong
-- **No surprises**: We don't do magic, just HTTP requests with style
+```
+┌─────────────────┐
+│   @nodash/mcp   │  ← AI Agent Layer
+│  (AI Agents)    │
+└─────────────────┘
+         ↑
+┌─────────────────┐
+│   @nodash/cli   │  ← Developer Layer
+│  (Developer)    │
+└─────────────────┘
+         ↑
+┌─────────────────┐
+│   @nodash/sdk   │  ← Foundation Layer (this package)
+│   (Foundation)  │
+└─────────────────┘
+```
 
-### Agent-Friendly Examples
+The SDK provides:
+- **Minimal API Surface**: Core methods for tracking, identification, and health monitoring
+- **Type Safety**: Full TypeScript support with comprehensive type definitions
+- **Error Handling**: Clear, structured error messages for debugging
+- **Multi-tenant Support**: Automatic tenant derivation from API tokens
+- **Event Recording**: Built-in recording and replay capabilities for testing
+
+## Authentication and Multi-tenancy
+
+### API Token Format
+
+The SDK supports different API token formats for various authentication scenarios:
 
 ```typescript
-// Perfect for tracking user interactions in your applications
+// Single-tenant token (standard format)
+const sdk = new NodashSDK('https://api.com', 'sk-your-secret-token');
+
+// Multi-tenant token (tenant auto-derived)
+const sdk = new NodashSDK('https://api.com', 'demo-api-key-tenant1');
+// Tenant 'tenant1' is automatically extracted from the token
+```
+
+### Tenant Derivation
+
+For multi-tenant servers, the SDK automatically derives the tenant from the API token pattern:
+
+- Token format: `{prefix}-{suffix}-{tenant}`
+- Example: `demo-api-key-tenant1` → tenant: `tenant1`
+- Example: `prod-key-company-abc` → tenant: `company-abc`
+
+### Custom Headers
+
+You can provide custom headers for additional authentication or configuration:
+
+```typescript
+const sdk = new NodashSDK('https://api.com', 'your-token', {
+  headers: {
+    'X-Custom-Auth': 'additional-auth-token',
+    'X-Environment': 'production',
+    'X-Client-Version': '1.0.0'
+  }
+});
+```
+
+### Environment-based Configuration
+
+```typescript
+const sdk = new NodashSDK(
+  process.env.NODASH_URL!,
+  process.env.NODASH_TOKEN,
+  {
+    headers: {
+      'X-Environment': process.env.NODE_ENV || 'development'
+    }
+  }
+);
+```
+
+### AI Agent Integration
+
+```typescript
 const sdk = new NodashSDK(process.env.NODASH_URL!, process.env.NODASH_TOKEN);
 
-// Track events with structured data
+// Track AI interactions with structured data
 await sdk.track('ai_interaction', {
   model: 'gpt-4',
   tokens_used: 1337,
-  user_satisfaction: 'probably_good'
+  user_satisfaction: 'high',
+  response_time_ms: 250
 });
 ```
 
-## API Reference (The Boring But Important Stuff)
+## API Reference
 
 ### Constructor
 
@@ -84,8 +153,8 @@ new NodashSDK(baseUrl: string, apiToken?: string)
 ```
 
 **Parameters:**
-- `baseUrl` (required): Your server URL. Must be a valid URL or we'll throw a tantrum.
-- `apiToken` (optional): Authentication token. Some servers need it, some don't. Life is complicated. For multi-tenant servers, tenant information is automatically derived from the token pattern (e.g., `demo-api-key-tenant1` → `tenant1`).
+- `baseUrl` (required): Your server URL. Must be a valid URL.
+- `apiToken` (optional): Authentication token. For multi-tenant servers, tenant information is automatically derived from the token pattern (e.g., `demo-api-key-tenant1` → `tenant1`).
 
 **Example:**
 ```typescript
@@ -95,21 +164,21 @@ const sdk = new NodashSDK('https://api.yourserver.com', 'demo-api-key-tenant1');
 // With token only (for single-tenant servers)
 const sdk = new NodashSDK('https://api.yourserver.com', 'sk-your-secret-token');
 
-// Without token (living dangerously)
+// Without token (for servers that don't require authentication)
 const sdk = new NodashSDK('https://your-local-server.com');
 ```
 
 ### track(event, properties?)
 
-Track events that happen in your application. Like a diary, but for code.
+Track events that happen in your application.
 
 ```typescript
 await sdk.track(event: string, properties?: Record<string, any>): Promise<void>
 ```
 
 **Parameters:**
-- `event`: What happened (be creative, but not too creative)
-- `properties`: Additional data (optional, like your social life)
+- `event`: Event name describing what happened
+- `properties`: Additional event data (optional)
 
 **Examples:**
 ```typescript
@@ -120,13 +189,13 @@ await sdk.track('button_clicked');
 await sdk.track('purchase_completed', {
   amount: 99.99,
   currency: 'USD',
-  items: ['coffee', 'more_coffee', 'emergency_coffee']
+  items: ['product_1', 'product_2', 'product_3']
 });
 ```
 
 ### identify(userId, traits?)
 
-Tell us who your users are. We promise not to sell their data to aliens.
+Identify users and associate traits with them.
 
 ```typescript
 await sdk.identify(userId: string, traits?: Record<string, any>): Promise<void>
@@ -145,13 +214,13 @@ await sdk.identify('user-123');
 await sdk.identify('user-456', {
   email: 'developer@example.com',
   plan: 'pro',
-  bugs_created_today: 3
+  role: 'developer'
 });
 ```
 
 ### health()
 
-Check if your server is still breathing.
+Check server health status.
 
 ```typescript
 await sdk.health(): Promise<HealthStatus>
@@ -171,15 +240,249 @@ interface HealthStatus {
 ```typescript
 const health = await sdk.health();
 if (health.status === 'healthy') {
-  console.log('All systems go! 🚀');
+  console.log('Server is operational');
 } else {
-  console.log('Houston, we have a problem... 🚨');
+  console.log('Server health check failed');
 }
 ```
 
-## Building Your Own Server (For the Brave Souls)
+### getConfig()
 
-Want to implement your own Nodash-compatible server? You're either very brave or very foolish. Either way, we respect that.
+Get the current SDK configuration.
+
+```typescript
+sdk.getConfig(): NodashConfig
+```
+
+**Returns:**
+```typescript
+interface NodashConfig {
+  baseUrl: string;
+  apiToken?: string;
+  environment?: string;
+  customHeaders?: Record<string, string>;
+}
+```
+
+**Example:**
+```typescript
+const config = sdk.getConfig();
+console.log('Base URL:', config.baseUrl);
+```
+
+### isRecording()
+
+Check if event recording is currently active.
+
+```typescript
+sdk.isRecording(): boolean
+```
+
+**Returns:** `true` if recording is active, `false` otherwise.
+
+**Example:**
+```typescript
+if (sdk.isRecording()) {
+  console.log('Events are being recorded');
+}
+```
+
+### startRecording(options?)
+
+Start recording events in memory for testing and debugging.
+
+```typescript
+sdk.startRecording(options?: RecordingOptions): { filePath?: string }
+```
+
+**Parameters:**
+```typescript
+interface RecordingOptions {
+  maxEvents?: number;
+  store?: string; // 'memory', 'default', or file path
+}
+```
+
+**Example:**
+```typescript
+// Start recording with default options
+sdk.startRecording();
+
+// Start recording with custom options
+sdk.startRecording({ maxEvents: 50, store: 'memory' });
+```
+
+### stopRecording()
+
+Stop recording and return captured events.
+
+```typescript
+sdk.stopRecording(): RecordingResult
+```
+
+**Returns:**
+```typescript
+interface RecordingResult {
+  events: Event[];
+  recordedAt: Date;
+  totalEvents: number;
+  filePath?: string;
+}
+```
+
+**Example:**
+```typescript
+const session = sdk.stopRecording();
+console.log(`Recorded ${session.totalEvents} events`);
+```
+
+### replay(snapshotOrPath, options?)
+
+Replay events from a snapshot or file.
+
+```typescript
+sdk.replay(snapshotOrPath: EventSnapshot | string, options?: ReplayOptions): Promise<any[]>
+```
+
+**Parameters:**
+```typescript
+interface ReplayOptions {
+  dryRun?: boolean;
+  url?: string;
+}
+```
+
+**Example:**
+```typescript
+// Replay from file with dry run
+await sdk.replay('./session.json', { dryRun: true });
+
+// Replay to different endpoint
+await sdk.replay(session, { url: 'https://staging.api.com' });
+```
+
+### queryEvents(options?)
+
+Query events with filtering and pagination.
+
+```typescript
+sdk.queryEvents(options?: QueryOptions): Promise<QueryResult>
+```
+
+**Parameters:**
+```typescript
+interface QueryOptions {
+  eventTypes?: string[];
+  userId?: string;
+  startDate?: Date;
+  endDate?: Date;
+  properties?: Record<string, any>;
+  sortBy?: 'timestamp' | 'eventName' | 'userId';
+  sortOrder?: 'asc' | 'desc';
+  limit?: number;
+  offset?: number;
+  format?: 'json' | 'csv';
+}
+```
+
+**Returns:**
+```typescript
+interface QueryResult {
+  events: AnalyticsEvent[];
+  totalCount: number;
+  hasMore: boolean;
+  pagination: PaginationInfo;
+  executionTime: number;
+}
+
+interface AnalyticsEvent {
+  eventId: string;
+  tenantId: string;
+  userId?: string;
+  eventName: string;
+  properties: Record<string, any>;
+  timestamp: Date;
+  receivedAt: Date;
+  sessionId?: string;
+  deviceId?: string;
+}
+```
+
+**Example:**
+```typescript
+const result = await sdk.queryEvents({
+  eventTypes: ['user_signup', 'purchase'],
+  startDate: new Date('2024-01-01'),
+  limit: 100
+});
+
+console.log(`Found ${result.totalCount} events`);
+result.events.forEach(event => {
+  console.log(`${event.eventName} at ${event.timestamp}`);
+});
+```
+
+### queryUsers(options?)
+
+Query users with filtering and pagination.
+
+```typescript
+sdk.queryUsers(options?: UserQueryOptions): Promise<UserQueryResult>
+```
+
+**Parameters:**
+```typescript
+interface UserQueryOptions {
+  userId?: string;
+  activeSince?: Date;
+  activeUntil?: Date;
+  properties?: Record<string, any>;
+  sortBy?: 'firstSeen' | 'lastSeen' | 'eventCount' | 'sessionCount';
+  sortOrder?: 'asc' | 'desc';
+  limit?: number;
+  offset?: number;
+  format?: 'json' | 'csv';
+}
+```
+
+**Returns:**
+```typescript
+interface UserQueryResult {
+  users: UserRecord[];
+  totalCount: number;
+  hasMore: boolean;
+  pagination: PaginationInfo;
+  executionTime: number;
+}
+
+interface UserRecord {
+  userId: string;
+  tenantId: string;
+  properties: Record<string, any>;
+  firstSeen: Date;
+  lastSeen: Date;
+  sessionCount: number;
+  eventCount: number;
+}
+```
+
+**Example:**
+```typescript
+const result = await sdk.queryUsers({
+  activeSince: new Date('2024-01-01'),
+  sortBy: 'lastSeen',
+  limit: 50
+});
+
+console.log(`Found ${result.totalCount} users`);
+result.users.forEach(user => {
+  console.log(`User ${user.userId}: ${user.eventCount} events`);
+});
+```
+
+## Server Implementation
+
+To implement a Nodash-compatible server, your server must support the following endpoints:
 
 Your server needs to implement these endpoints:
 
@@ -217,11 +520,39 @@ Return server status:
 }
 ```
 
-## Error Handling (When Things Go Wrong)
+## Error Handling
 
-We believe in clear, helpful error messages. No cryptic codes or mysterious failures here.
+The SDK provides comprehensive error handling with clear, structured error messages for debugging and troubleshooting.
+
+### Constructor Errors
 
 ```typescript
+// Invalid baseUrl
+try {
+  const sdk = new NodashSDK('not-a-url');
+} catch (error) {
+  console.log(error.message); // "baseUrl must be a valid URL"
+}
+
+// Missing baseUrl
+try {
+  const sdk = new NodashSDK('');
+} catch (error) {
+  console.log(error.message); // "baseUrl is required and must be a string"
+}
+
+// Invalid apiToken
+try {
+  const sdk = new NodashSDK('https://api.com', '');
+} catch (error) {
+  console.log(error.message); // "apiToken is required and must be a string"
+}
+```
+
+### Method Validation Errors
+
+```typescript
+// Track method errors
 try {
   await sdk.track('', {}); // Empty event name
 } catch (error) {
@@ -229,13 +560,117 @@ try {
 }
 
 try {
-  const sdk = new NodashSDK('not-a-url');
+  await sdk.track(null); // Invalid event type
 } catch (error) {
-  console.log(error.message); // "baseUrl must be a valid URL"
+  console.log(error.message); // "event name is required and must be a string"
+}
+
+// Identify method errors
+try {
+  await sdk.identify(''); // Empty userId
+} catch (error) {
+  console.log(error.message); // "userId is required and must be a string"
+}
+
+try {
+  await sdk.identify(null); // Invalid userId type
+} catch (error) {
+  console.log(error.message); // "userId is required and must be a string"
+}
+```
+
+### Network and Server Errors
+
+```typescript
+try {
+  await sdk.track('user_action', { test: true });
+} catch (error) {
+  if (error.code === 'ECONNREFUSED') {
+    console.log('Server is not reachable');
+  } else if (error.status === 401) {
+    console.log('Authentication failed - check your API token');
+  } else if (error.status === 429) {
+    console.log('Rate limit exceeded - please retry later');
+  } else if (error.status >= 500) {
+    console.log('Server error - please try again');
+  } else {
+    console.log('Request failed:', error.message);
+  }
+}
+```
+
+### Error Response Format
+
+When server requests fail, the SDK throws errors with the following structure:
+
+```typescript
+interface SDKError extends Error {
+  status?: number;        // HTTP status code
+  code?: string;          // Error code (e.g., 'ECONNREFUSED')
+  response?: any;         // Server response body
+  requestId?: string;     // Request ID for debugging
+}
+```
+
+### Common Error Scenarios
+
+| Error | Cause | Solution |
+|-------|-------|----------|
+| `baseUrl must be a valid URL` | Invalid URL format | Ensure URL includes protocol (http/https) |
+| `event name is required` | Empty or null event name | Provide a non-empty string for event name |
+| `userId is required` | Empty or null userId | Provide a non-empty string for userId |
+| `401 Unauthorized` | Invalid or missing API token | Check your API token configuration |
+| `429 Too Many Requests` | Rate limit exceeded | Implement retry logic with backoff |
+| `ECONNREFUSED` | Server not reachable | Check server URL and network connectivity |
+| `ETIMEDOUT` | Request timeout | Check network connectivity or increase timeout |
+
+### Error Handling Best Practices
+
+```typescript
+import { NodashSDK } from '@nodash/sdk';
+
+const sdk = new NodashSDK(process.env.NODASH_URL, process.env.NODASH_TOKEN);
+
+async function trackEventSafely(event: string, properties?: Record<string, any>) {
+  try {
+    await sdk.track(event, properties);
+  } catch (error) {
+    // Log error for debugging
+    console.error('Failed to track event:', {
+      event,
+      error: error.message,
+      status: error.status,
+      requestId: error.requestId
+    });
+    
+    // Handle specific error types
+    if (error.status === 429) {
+      // Implement retry with exponential backoff
+      await retryWithBackoff(() => sdk.track(event, properties));
+    } else if (error.status >= 500) {
+      // Queue for retry later
+      queueForRetry(event, properties);
+    }
+    
+    // Don't throw - allow application to continue
+  }
+}
+
+async function retryWithBackoff(fn: () => Promise<any>, maxRetries = 3) {
+  for (let i = 0; i < maxRetries; i++) {
+    try {
+      return await fn();
+    } catch (error) {
+      if (i === maxRetries - 1) throw error;
+      await new Promise(resolve => setTimeout(resolve, Math.pow(2, i) * 1000));
+    }
+  }
 }
 ```
 
 ## Common Patterns
+
+## Usage Examples
 
 ### Environment-based Configuration
 ```typescript
@@ -247,54 +682,143 @@ const sdk = new NodashSDK(
 );
 ```
 
-## Event Recorder - 30s Guide
-
-Record events in memory during development/testing, then replay them later. Perfect for debugging and testing event sequences.
-
+### Web Application Integration
 ```typescript
-// Start recording (captures track/identify calls in memory)
-sdk.startRecording(100); // max 100 events
+import { NodashSDK } from '@nodash/sdk';
 
-// Your normal tracking code - gets recorded instead of sent
-await sdk.track('user_signup', { plan: 'pro' });
-await sdk.identify('user-123', { name: 'John' });
+const analytics = new NodashSDK('https://api.example.com', 'your-api-token');
 
-// Stop and get the session
-const session = sdk.stopRecording();
+// Track page views
+await analytics.track('page_view', {
+  page: window.location.pathname,
+  referrer: document.referrer,
+  user_agent: navigator.userAgent
+});
 
-// Replay to different endpoint or dry-run
-await sdk.replay(session, { dryRun: true }); // logs without HTTP
-await sdk.replay(session, { url: 'https://staging.api.com' }); // custom endpoint
+// Track user interactions
+document.getElementById('signup-button').addEventListener('click', async () => {
+  await analytics.track('signup_button_clicked', {
+    page: 'landing',
+    button_position: 'header'
+  });
+});
 ```
 
-### Batch Operations (Coming Soon™)
-Currently, each method makes individual requests. If you need batching, implement it in your server or wait for v0.2.0 (no promises on timing).
+### Server-side Integration
+```typescript
+import { NodashSDK } from '@nodash/sdk';
+
+const analytics = new NodashSDK(process.env.NODASH_URL, process.env.NODASH_TOKEN);
+
+// Track API usage
+app.post('/api/users', async (req, res) => {
+  // Create user logic...
+  
+  await analytics.track('user_created', {
+    user_id: newUser.id,
+    plan: newUser.plan,
+    source: req.headers['x-source'] || 'api'
+  });
+  
+  res.json(newUser);
+});
+```
+
+### AI Agent Integration
+```typescript
+import { NodashSDK } from '@nodash/sdk';
+
+const analytics = new NodashSDK(process.env.NODASH_URL, process.env.NODASH_TOKEN);
+
+// Track AI interactions
+async function trackAIInteraction(interaction: AIInteraction) {
+  await analytics.track('ai_interaction', {
+    model: interaction.model,
+    tokens_used: interaction.tokensUsed,
+    response_time_ms: interaction.responseTime,
+    user_satisfaction: interaction.satisfaction,
+    task_type: interaction.taskType
+  });
+}
+
+// Track agent performance
+await analytics.track('agent_task_completed', {
+  task_id: 'task-123',
+  duration_ms: 1500,
+  success: true,
+  error_count: 0
+});
+```
+
+### Testing and Development
+```typescript
+import { NodashSDK } from '@nodash/sdk';
+
+const sdk = new NodashSDK('http://localhost:3000');
+
+// Record events during testing
+sdk.startRecording({ maxEvents: 50 });
+
+// Run your test scenarios
+await sdk.track('test_event_1', { test: true });
+await sdk.identify('test-user', { role: 'tester' });
+
+// Stop recording and analyze
+const session = sdk.stopRecording();
+console.log(`Recorded ${session.totalEvents} events`);
+
+// Replay against staging environment
+await sdk.replay(session, { url: 'https://staging.api.com' });
+```
+
+## Event Recording and Replay
+
+The SDK includes built-in event recording capabilities for testing and debugging.
+
+```typescript
+// Start recording with options
+sdk.startRecording({ maxEvents: 100, store: 'memory' });
+
+// Normal tracking operations - events are recorded instead of sent
+await sdk.track('user_signup', { plan: 'pro' });
+await sdk.identify('user-123', { name: 'John Doe' });
+
+// Stop recording and get the session
+const session = sdk.stopRecording();
+
+// Replay events with different options
+await sdk.replay(session, { dryRun: true }); // logs without HTTP requests
+await sdk.replay(session, { url: 'https://staging.api.com' }); // replay to different endpoint
+```
+
+### Batch Operations
+Currently, each method makes individual HTTP requests. For batch operations, implement batching logic in your server or use the event recording feature to collect events and replay them as needed.
 
 ## Troubleshooting
 
 **Q: My requests are failing with 401 errors**
-A: Check your API token. If you don't have one, maybe your server doesn't need it? Life is mysterious.
+A: Check your API token configuration. Verify that your server requires authentication and that you're providing a valid token.
 
 **Q: The SDK is throwing "baseUrl must be a valid URL" errors**
-A: Your URL is probably invalid. Try adding `http://` or `https://` at the beginning. We're not mind readers.
+A: Ensure your URL includes the protocol (http:// or https://) and is properly formatted.
 
 **Q: Nothing is happening when I call track()**
-A: Check your server logs. The SDK is probably working fine; your server might be having an existential crisis.
+A: Check your server logs and network connectivity. Verify that your server is running and accessible at the configured URL.
 
 **Q: Can I use this with my custom server?**
-A: Absolutely! As long as your server speaks HTTP and implements the expected endpoints, we're friends.
+A: Yes, as long as your server implements the required HTTP endpoints (/track, /identify, /health) with the expected request/response formats.
 
 ## Contributing
 
-Found a bug? Want to add a feature? Great! Just remember:
-- Keep it simple (complexity is the enemy)
-- Write tests (future you will thank present you)
-- Update documentation (yes, even the jokes)
+Contributions are welcome! Please follow these guidelines:
+- Keep implementations simple and focused
+- Write comprehensive tests for new features
+- Update documentation for any API changes
 
 ## License
 
-MIT - Because sharing is caring, and lawyers are expensive.
+MIT License
 
 ---
 
-*Built with ❤️ and excessive amounts of caffeine by the Nodash team*
+*Built by the Nodash team*

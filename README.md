@@ -6,22 +6,100 @@ Welcome to the clean, minimal, and delightfully simple Nodash ecosystem! This is
 
 ## Architecture Overview
 
+### Component Hierarchy
+
 ```
 ┌─────────────────┐
-│   @nodash/sdk   │  ← Foundation layer (the star of the show)
-│   (Foundation)  │
-└─────────────────┘
-         ↑
-┌─────────────────┐
-│   @nodash/cli   │  ← Developer layer (uses SDK)
-│  (Developer)    │
-└─────────────────┘
-         ↑
-┌─────────────────┐
-│   @nodash/mcp   │  ← AI Agent layer (uses CLI + SDK)
-│  (AI Agents)    │
-└─────────────────┘
+│   @nodash/mcp   │  ← AI Agent Layer
+│  (AI Agents)    │     • MCP Protocol Server
+└─────────────────┘     • Tool Discovery
+         ↑               • Documentation Serving
+┌─────────────────┐     • Agent Optimization
+│   @nodash/cli   │  ← Developer Layer
+│  (Developer)    │     • Command Line Interface
+└─────────────────┘     • Configuration Management
+         ↑               • Event Recording
+┌─────────────────┐     • Query Interface
+│   @nodash/sdk   │  ← Foundation Layer
+│   (Foundation)  │     • HTTP Client
+└─────────────────┘     • Event Tracking
+                        • User Identification
+                        • Health Monitoring
 ```
+
+### Data Flow Architecture
+
+```mermaid
+graph TD
+    A[AI Agent] --> B[MCP Server]
+    C[Developer] --> D[CLI]
+    E[Application] --> F[SDK]
+    
+    B --> D
+    B --> F
+    D --> F
+    
+    F --> G[HTTP Client]
+    G --> H[Nodash API Server]
+    
+    H --> I[Event Storage]
+    H --> J[User Storage]
+    H --> K[Analytics Engine]
+    
+    I --> L[Multi-tenant Data]
+    J --> L
+    K --> L
+```
+
+### Component Responsibilities
+
+**@nodash/sdk (Foundation Layer)**
+- HTTP communication with Nodash servers
+- Event tracking and user identification
+- Health monitoring and configuration management
+- Event recording and replay capabilities
+- Query interface for analytics data
+- Multi-tenant authentication handling
+
+**@nodash/cli (Developer Layer)**
+- Command-line interface for developers
+- Configuration file management
+- Event recording and session management
+- Query commands for data analysis
+- Integration with CI/CD pipelines
+- Scripting and automation support
+
+**@nodash/mcp (AI Agent Layer)**
+- Model Context Protocol server implementation
+- Dynamic tool discovery and exposure
+- Documentation serving and example extraction
+- Project setup optimization for agents
+- Advanced analytics and pattern analysis
+- Agent-friendly error handling and responses
+
+### Documentation Sharing System
+
+```mermaid
+graph LR
+    A[SDK README.md] --> D[bundle-docs.js]
+    B[CLI README.md] --> D
+    C[MCP README.md] --> E[MCP Server]
+    
+    D --> F[bundled-docs.ts]
+    F --> E
+    
+    E --> G[AI Agents]
+    E --> H[Documentation Tools]
+    
+    I[Build Process] --> D
+    J[Code Changes] --> I
+```
+
+The documentation sharing system ensures that:
+- SDK and CLI documentation is automatically bundled into the MCP server
+- AI agents always have access to the latest documentation
+- Examples are extracted and validated during the build process
+- Documentation updates propagate automatically through the system
 
 ## Quick Start (5 Minutes to Glory)
 
@@ -200,7 +278,119 @@ The MCP server automatically discovers CLI and SDK capabilities:
 // - setup_project: Configure nodash for optimal usage
 // - run_cli_command: Execute CLI commands
 // - get_documentation: Access latest docs and examples
+// - query_events: Access analytics data
+// - analyze_events: Perform advanced analytics
 ```
+
+## Deployment Architecture
+
+### Single-tenant Deployment
+
+```mermaid
+graph TD
+    A[Client Applications] --> B[Load Balancer]
+    B --> C[Nodash API Server]
+    C --> D[Database]
+    C --> E[File Storage]
+    
+    F[Developers] --> G[CLI]
+    H[AI Agents] --> I[MCP Server]
+    
+    G --> C
+    I --> G
+    I --> J[SDK]
+    J --> C
+```
+
+### Multi-tenant Deployment
+
+```mermaid
+graph TD
+    A[Tenant A Apps] --> B[Load Balancer]
+    C[Tenant B Apps] --> B
+    D[Tenant C Apps] --> B
+    
+    B --> E[API Gateway]
+    E --> F[Nodash API Server]
+    
+    F --> G[Tenant A Data]
+    F --> H[Tenant B Data]
+    F --> I[Tenant C Data]
+    
+    J[Shared Infrastructure]
+    G --> J
+    H --> J
+    I --> J
+    
+    K[AI Agents] --> L[MCP Server]
+    L --> M[CLI]
+    M --> E
+```
+
+### Data Isolation in Multi-tenant Architecture
+
+**Tenant Identification:**
+- API tokens contain tenant information
+- Automatic tenant derivation from token patterns
+- Request-level tenant context propagation
+
+**Data Segregation:**
+- Database-level tenant isolation
+- Tenant-scoped queries and operations
+- Separate storage paths for tenant data
+
+**Security Boundaries:**
+- Token-based authentication per tenant
+- API-level access control
+- Audit logging per tenant
+
+## Authentication and Multi-tenancy
+
+Nodash supports both single-tenant and multi-tenant deployments with flexible authentication options.
+
+### API Token Formats
+
+**Single-tenant tokens:**
+```typescript
+const nodash = new NodashSDK('https://api.com', 'sk-your-secret-token');
+```
+
+**Multi-tenant tokens (tenant auto-derived):**
+```typescript
+const nodash = new NodashSDK('https://api.com', 'demo-api-key-tenant1');
+// Tenant 'tenant1' is automatically extracted from the token
+```
+
+### Token Pattern Recognition
+
+For multi-tenant servers, the SDK automatically derives the tenant from the API token pattern:
+- Format: `{prefix}-{suffix}-{tenant}`
+- Example: `demo-api-key-tenant1` → tenant: `tenant1`
+- Example: `prod-key-company-abc` → tenant: `company-abc`
+
+### Environment-based Configuration
+
+```bash
+# Production environment
+export NODASH_URL="https://api.nodash.com"
+export NODASH_TOKEN="prod-api-key-company"
+
+# Staging environment
+export NODASH_URL="https://staging.api.nodash.com"
+export NODASH_TOKEN="staging-api-key-company"
+
+# Development environment (no auth required)
+export NODASH_URL="http://localhost:3000"
+unset NODASH_TOKEN
+```
+
+### Security Best Practices
+
+1. **Token Storage**: Store API tokens in environment variables, not in code
+2. **Token Rotation**: Regularly rotate API tokens in production environments
+3. **Environment Isolation**: Use different tokens for different environments
+4. **Minimal Permissions**: Use tokens with minimal required permissions
+5. **Secure Transmission**: Always use HTTPS in production environments
 
 ## Design Principles
 
