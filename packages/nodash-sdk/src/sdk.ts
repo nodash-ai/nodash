@@ -1,11 +1,9 @@
 import { HttpClient } from './http-client';
-import { NodashConfig, HealthStatus, TrackingEvent, IdentifyData, Event, EventSnapshot, ReplayOptions, RecordingOptions, RecordingResult, QueryOptions, UserQueryOptions, QueryResult, UserQueryResult } from './types';
-import { Recorder } from './recorder';
+import { NodashConfig, HealthStatus, TrackingEvent, IdentifyData, QueryOptions, UserQueryOptions, QueryResult, UserQueryResult } from './types';
 
 export class NodashSDK {
   private client: HttpClient;
   private config: NodashConfig;
-  private recorder: Recorder = new Recorder();
 
   constructor(baseUrl: string, apiToken?: string, options?: { headers?: Record<string, string> }) {
     // Validate baseUrl
@@ -61,17 +59,6 @@ export class NodashSDK {
       ...(userId && { userId }),
     };
 
-    // If recording is active, add to buffer instead of sending HTTP request
-    if (this.recorder.isActive()) {
-      const recordedEvent: Event = {
-        type: 'track',
-        data: trackingEvent,
-        timestamp: new Date()
-      };
-      this.recorder.addEvent(recordedEvent);
-      return { success: true, recorded: true };
-    }
-
     const response = await this.client.post('/track', trackingEvent);
     
     // Normalize API response format for consistent SDK interface
@@ -102,17 +89,6 @@ export class NodashSDK {
       timestamp: new Date(),
     };
 
-    // If recording is active, add to buffer instead of sending HTTP request
-    if (this.recorder.isActive()) {
-      const recordedEvent: Event = {
-        type: 'identify',
-        data: identifyData,
-        timestamp: new Date()
-      };
-      this.recorder.addEvent(recordedEvent);
-      return { success: true, recorded: true };
-    }
-
     return await this.client.post('/identify', identifyData);
   }
 
@@ -121,81 +97,6 @@ export class NodashSDK {
    */
   async health(): Promise<HealthStatus> {
     return await this.client.get('/health');
-  }
-
-  /**
-   * Check if recording is currently active
-   */
-  isRecording(): boolean {
-    return this.recorder.isActive();
-  }
-
-  /**
-   * Start recording events
-   */
-  startRecording(options: RecordingOptions = {}): { filePath?: string } {
-    // Default to file-based recording if no store specified
-    if (!options.store) {
-      options.store = 'default';
-    }
-    return this.recorder.start(options);
-  }
-
-  /**
-   * Stop recording and return captured events
-   */
-  stopRecording(): RecordingResult {
-    return this.recorder.stop();
-  }
-
-  /**
-   * Replay events from a snapshot or file
-   */
-  async replay(snapshotOrPath: EventSnapshot | string, options?: ReplayOptions): Promise<any[]> {
-    const results: any[] = [];
-    
-    // If string is provided, read from file
-    let snapshot: EventSnapshot;
-    if (typeof snapshotOrPath === 'string') {
-      const fs = await import('fs');
-      const fileContent = fs.readFileSync(snapshotOrPath, 'utf8');
-      snapshot = JSON.parse(fileContent);
-    } else {
-      snapshot = snapshotOrPath;
-    }
-    
-    for (const event of snapshot.events) {
-      try {
-        if (options?.dryRun) {
-          // Log event without sending HTTP request
-          console.log(`[DRY RUN] ${event.type}:`, event.data);
-          results.push({ success: true, replayed: true, dryRun: true });
-          continue;
-        }
-
-        // Create temporary client with custom URL if provided
-        const client = options?.url 
-          ? new HttpClient(options.url, this.config.apiToken, this.config.customHeaders)
-          : this.client;
-
-        let result;
-        if (event.type === 'track') {
-          result = await client.post('/track', event.data);
-        } else if (event.type === 'identify') {
-          result = await client.post('/identify', event.data);
-        }
-        
-        results.push({ ...result, replayed: true });
-      } catch (error) {
-        results.push({ 
-          success: false, 
-          error: error instanceof Error ? error.message : String(error),
-          replayed: false 
-        });
-      }
-    }
-
-    return results;
   }
 
   /**

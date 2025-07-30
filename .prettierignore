@@ -7,12 +7,6 @@ dist/
 **/dist/
 *.tsbuildinfo
 
-# Recordings and generated files
-**/.nodash/
-**/.nodash/**
-**/recordings/
-**/recordings/**
-
 # Logs
 *.log
 npm-debug.log*

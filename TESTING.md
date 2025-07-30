@@ -72,7 +72,7 @@ npm run build -w @nodash/sdk
 ### ✅ Component Testing (CLI Package)
 - **Configuration Management** (20 tests): Config file handling, validation, persistence
 - **Command Execution** (34 tests): All CLI commands with real argument processing
-- **Event Recording** (12 tests): Session capture, replay, and file handling
+- **Event Management**: Core tracking and query functionality
 - **Environment Support** (10 tests): Custom config directories, environment variables
 - **Error Handling** (8 tests): Graceful failure modes and user-friendly messages
 
@@ -203,7 +203,7 @@ describe('MCP Integration', () => {
 ```bash
 # Component tests
 ./test-config/              # CLI configuration testing
-./test-sessions/            # Event recording sessions
+./test-config/              # Test configuration files
 
 # Integration tests  
 ./integration-temp/         # Cross-package test data

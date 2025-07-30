@@ -77,7 +77,6 @@ The SDK provides:
 - **Type Safety**: Full TypeScript support with comprehensive type definitions
 - **Error Handling**: Clear, structured error messages for debugging
 - **Multi-tenant Support**: Automatic tenant derivation from API tokens
-- **Event Recording**: Built-in recording and replay capabilities for testing
 
 ## Authentication and Multi-tenancy
 
@@ -268,97 +267,6 @@ interface NodashConfig {
 ```typescript
 const config = sdk.getConfig();
 console.log('Base URL:', config.baseUrl);
-```
-
-### isRecording()
-
-Check if event recording is currently active.
-
-```typescript
-sdk.isRecording(): boolean
-```
-
-**Returns:** `true` if recording is active, `false` otherwise.
-
-**Example:**
-```typescript
-if (sdk.isRecording()) {
-  console.log('Events are being recorded');
-}
-```
-
-### startRecording(options?)
-
-Start recording events in memory for testing and debugging.
-
-```typescript
-sdk.startRecording(options?: RecordingOptions): { filePath?: string }
-```
-
-**Parameters:**
-```typescript
-interface RecordingOptions {
-  maxEvents?: number;
-  store?: string; // 'memory', 'default', or file path
-}
-```
-
-**Example:**
-```typescript
-// Start recording with default options
-sdk.startRecording();
-
-// Start recording with custom options
-sdk.startRecording({ maxEvents: 50, store: 'memory' });
-```
-
-### stopRecording()
-
-Stop recording and return captured events.
-
-```typescript
-sdk.stopRecording(): RecordingResult
-```
-
-**Returns:**
-```typescript
-interface RecordingResult {
-  events: Event[];
-  recordedAt: Date;
-  totalEvents: number;
-  filePath?: string;
-}
-```
-
-**Example:**
-```typescript
-const session = sdk.stopRecording();
-console.log(`Recorded ${session.totalEvents} events`);
-```
-
-### replay(snapshotOrPath, options?)
-
-Replay events from a snapshot or file.
-
-```typescript
-sdk.replay(snapshotOrPath: EventSnapshot | string, options?: ReplayOptions): Promise<any[]>
-```
-
-**Parameters:**
-```typescript
-interface ReplayOptions {
-  dryRun?: boolean;
-  url?: string;
-}
-```
-
-**Example:**
-```typescript
-// Replay from file with dry run
-await sdk.replay('./session.json', { dryRun: true });
-
-// Replay to different endpoint
-await sdk.replay(session, { url: 'https://staging.api.com' });
 ```
 
 ### queryEvents(options?)
@@ -756,43 +664,13 @@ import { NodashSDK } from '@nodash/sdk';
 
 const sdk = new NodashSDK('http://localhost:3000');
 
-// Record events during testing
-sdk.startRecording({ maxEvents: 50 });
-
 // Run your test scenarios
 await sdk.track('test_event_1', { test: true });
 await sdk.identify('test-user', { role: 'tester' });
-
-// Stop recording and analyze
-const session = sdk.stopRecording();
-console.log(`Recorded ${session.totalEvents} events`);
-
-// Replay against staging environment
-await sdk.replay(session, { url: 'https://staging.api.com' });
-```
-
-## Event Recording and Replay
-
-The SDK includes built-in event recording capabilities for testing and debugging.
-
-```typescript
-// Start recording with options
-sdk.startRecording({ maxEvents: 100, store: 'memory' });
-
-// Normal tracking operations - events are recorded instead of sent
-await sdk.track('user_signup', { plan: 'pro' });
-await sdk.identify('user-123', { name: 'John Doe' });
-
-// Stop recording and get the session
-const session = sdk.stopRecording();
-
-// Replay events with different options
-await sdk.replay(session, { dryRun: true }); // logs without HTTP requests
-await sdk.replay(session, { url: 'https://staging.api.com' }); // replay to different endpoint
 ```
 
 ### Batch Operations
-Currently, each method makes individual HTTP requests. For batch operations, implement batching logic in your server or use the event recording feature to collect events and replay them as needed.
+Currently, each method makes individual HTTP requests. For batch operations, implement batching logic in your server.
 
 ## Troubleshooting
 

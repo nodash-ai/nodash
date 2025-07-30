@@ -37,7 +37,6 @@ The CLI operates as the developer layer in the Nodash ecosystem:
 The CLI provides:
 - **Command-line Interface**: Direct access to Nodash functionality from terminal
 - **Configuration Management**: Persistent configuration storage and management
-- **Event Recording**: Built-in recording and replay capabilities for testing
 - **Query Interface**: Command-line access to analytics data
 - **Agent Integration**: Structured output and error handling for AI agents
 
@@ -216,59 +215,6 @@ nodash query users --properties '{"plan": "pro"}' --format csv
 
 # Query top users by activity
 nodash query users --sort-by eventCount --sort-order desc --limit 20
-```
-
-### `nodash record start`
-
-Start recording events for testing and debugging.
-
-```bash
-nodash record start [options]
-```
-
-**Options:**
-- `--max-events <number>`: Maximum number of events to record (default: 100)
-
-**Example:**
-```bash
-nodash record start --max-events 50
-```
-
-### `nodash record stop`
-
-Stop recording and output session data.
-
-```bash
-nodash record stop [options]
-```
-
-**Options:**
-- `--out <file>`: Output file path (optional)
-
-**Example:**
-```bash
-nodash record stop --out ./session.json
-```
-
-### `nodash replay`
-
-Replay events from a saved session file.
-
-```bash
-nodash replay <file> [options]
-```
-
-**Options:**
-- `--dry-run`: Log events without sending HTTP requests
-- `--url <url>`: Override base URL for replay
-
-**Examples:**
-```bash
-# Dry run replay
-nodash replay ./session.json --dry-run
-
-# Replay to different endpoint
-nodash replay ./session.json --url https://staging.api.com
 ```
 
 ## AI Agent Integration
@@ -888,73 +834,7 @@ echo "Total events: $EVENT_COUNT"
 # Extract configuration values
 BASE_URL=$(nodash config get baseUrl)
 echo "Configured server: $BASE_URL"
-```
-
-## Event Recording and Replay
-
-The CLI includes comprehensive event recording capabilities for testing, debugging, and data migration scenarios.
-
-### Basic Recording Workflow
-
-```bash
-# Start recording with custom limits
-nodash record start --max-events 100
-
-# Execute your normal tracking commands - events are captured instead of sent
-nodash track "user_signup" --properties '{"plan": "pro", "source": "web"}'
-nodash track "page_view" --properties '{"page": "/dashboard", "user_id": "user-123"}'
-nodash track "feature_used" --properties '{"feature": "analytics", "user_id": "user-123"}'
-
-# Stop recording and save to file
-nodash record stop --out ./test_session.json
-
-# Review recorded events
-cat ./test_session.json | jq '.events[] | {type: .type, event: .data.event}'
-```
-
-### Replay Scenarios
-
-```bash
-# Dry run - log events without sending HTTP requests
-nodash replay ./test_session.json --dry-run
-
-# Replay to staging environment
-nodash replay ./test_session.json --url https://staging.api.com
-
-# Replay to production (be careful!)
-nodash replay ./test_session.json --url https://api.com
-```
-
-### Advanced Recording Patterns
-
-```bash
-#!/bin/bash
-# Load testing scenario
-
-# Record a user journey
-nodash record start --max-events 50
-
-# Simulate complete user flow
-nodash track "user_signup" --properties '{"plan": "pro"}'
-nodash track "onboarding_started" --properties '{"step": 1}'
-nodash track "onboarding_completed" --properties '{"steps_completed": 5}'
-nodash track "first_action" --properties '{"action": "create_project"}'
-nodash track "feature_discovery" --properties '{"feature": "analytics"}'
-
-# Stop and save
-SESSION_FILE="user_journey_$(date +%Y%m%d_%H%M%S).json"
-nodash record stop --out "$SESSION_FILE"
-
-# Replay multiple times for load testing
-for i in {1..10}; do
-  echo "Replaying session $i..."
-  nodash replay "$SESSION_FILE" --url https://staging.api.com
-  sleep 1
-done
-```
-
-
-
+``` for load testing
 ## Contributing
 
 Contributions are welcome! Please follow these guidelines:

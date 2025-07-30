@@ -18,8 +18,8 @@ Welcome to the clean, minimal, and delightfully simple Nodash ecosystem! This is
 │   @nodash/cli   │  ← Developer Layer
 │  (Developer)    │     • Command Line Interface
 └─────────────────┘     • Configuration Management
-         ↑               • Event Recording
-┌─────────────────┐     • Query Interface
+         ↑               • Query Interface
+┌─────────────────┐     • Agent Integration
 │   @nodash/sdk   │  ← Foundation Layer
 │   (Foundation)  │     • HTTP Client
 └─────────────────┘     • Event Tracking
@@ -57,14 +57,12 @@ graph TD
 - HTTP communication with Nodash servers
 - Event tracking and user identification
 - Health monitoring and configuration management
-- Event recording and replay capabilities
 - Query interface for analytics data
 - Multi-tenant authentication handling
 
 **@nodash/cli (Developer Layer)**
 - Command-line interface for developers
 - Configuration file management
-- Event recording and session management
 - Query commands for data analysis
 - Integration with CI/CD pipelines
 - Scripting and automation support

@@ -147,8 +147,6 @@ The MCP server automatically provides tools based on Nodash capabilities:
 - **setup_project**: Configure Nodash for optimal usage with intelligent defaults
 - **run_cli_command**: Execute CLI commands programmatically with structured output
 - **get_documentation**: Access comprehensive SDK and CLI documentation
-- **capture_session**: Record and manage event sessions for testing
-- **replay_session**: Replay recorded events for debugging and testing
 - **query_events**: Query analytics events with advanced filtering
 - **query_users**: Query user data with comprehensive filtering options
 - **analyze_events**: Perform advanced analytics and pattern analysis
@@ -242,46 +240,6 @@ Retrieve documentation for SDK or CLI components.
 ```json
 {
   "component": "sdk"
-}
-```
-
-### capture_session
-
-Start or stop event recording sessions for testing and debugging.
-
-**Parameters:**
-- `action` (required): "start" or "stop"
-- `maxEvents` (optional): Maximum events to record (default: 100)
-
-**Examples:**
-```json
-{
-  "action": "start",
-  "maxEvents": 50
-}
-```
-
-```json
-{
-  "action": "stop"
-}
-```
-
-### replay_session
-
-Replay events from a saved session file.
-
-**Parameters:**
-- `filePath` (required): Path to session JSON file
-- `url` (optional): Override base URL for replay
-- `dryRun` (optional): Log events without sending HTTP requests
-
-**Example:**
-```json
-{
-  "filePath": "./session.json",
-  "url": "https://staging.api.com",
-  "dryRun": true
 }
 ```
 
@@ -449,66 +407,6 @@ const cliDocs = await mcp.callTool('get_documentation', {
 // Extract command patterns for automation
 const commandPatterns = cliDocs.content.match(/nodash \w+[^\n]*/g) || [];
 console.log(`Available CLI patterns: ${commandPatterns.length}`);
-```
-
-### Advanced Event Recording and Testing Workflow
-
-```typescript
-// Start comprehensive event recording session
-const startResult = await mcp.callTool('capture_session', {
-  action: 'start',
-  maxEvents: 100
-});
-
-if (!startResult.success) {
-  throw new Error(`Failed to start recording: ${startResult.message}`);
-}
-
-console.log('Recording session started');
-
-// Simulate complex user journey
-const userJourney = [
-  { event: 'user_signup', properties: { plan: 'pro', source: 'agent_test' } },
-  { event: 'onboarding_started', properties: { step: 1 } },
-  { event: 'feature_discovered', properties: { feature: 'analytics' } },
-  { event: 'first_action', properties: { action: 'create_project' } },
-  { event: 'onboarding_completed', properties: { steps_completed: 5 } }
-];
-
-// Execute recorded events
-for (const { event, properties } of userJourney) {
-  const result = await mcp.callTool('run_cli_command', {
-    command: 'track',
-    args: [event, '--properties', JSON.stringify(properties)]
-  });
-  
-  if (!result.success) {
-    console.error(`Failed to track ${event}:`, result.error);
-  }
-}
-
-// Stop recording and get session data
-const stopResult = await mcp.callTool('capture_session', {
-  action: 'stop'
-});
-
-console.log(`Recorded ${stopResult.totalEvents} events`);
-
-// Validate recorded events with dry-run
-const dryRunResult = await mcp.callTool('replay_session', {
-  filePath: stopResult.filePath,
-  dryRun: true
-});
-
-console.log('Dry run validation:', dryRunResult.success);
-
-// Replay to staging environment for testing
-const stagingReplay = await mcp.callTool('replay_session', {
-  filePath: stopResult.filePath,
-  url: 'https://staging.api.example.com'
-});
-
-console.log('Staging replay completed:', stagingReplay.success);
 ```
 
 ### Analytics and Data Querying Workflow

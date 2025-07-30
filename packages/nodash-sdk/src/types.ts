@@ -31,35 +31,6 @@ export interface IdentifyData {
   timestamp?: Date;
 }
 
-export interface Event {
-  type: 'track' | 'identify';
-  data: TrackingEvent | IdentifyData;
-  timestamp: Date;
-}
-
-export interface EventSnapshot {
-  events: Event[];
-  recordedAt: Date;
-  totalEvents: number;
-}
-
-export interface ReplayOptions {
-  url?: string;
-  dryRun?: boolean;
-}
-
-export interface RecordingOptions {
-  maxEvents?: number;
-  store?: string; // 'memory' or file path
-}
-
-export interface RecordingResult {
-  events: Event[];
-  recordedAt: Date;
-  totalEvents: number;
-  filePath?: string;
-}
-
 // Query types
 export interface QueryOptions {
   // Filtering

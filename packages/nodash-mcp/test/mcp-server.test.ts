@@ -142,8 +142,6 @@ describe('Nodash MCP Server Component Tests', () => {
             expect(toolNames).toContain('setup_project');
             expect(toolNames).toContain('run_cli_command');
             expect(toolNames).toContain('get_documentation');
-            expect(toolNames).toContain('capture_session');
-            expect(toolNames).toContain('replay_session');
         });
 
         // Tool schema validation removed - tests implementation details rather than behavior
@@ -224,39 +222,7 @@ describe('Nodash MCP Server Component Tests', () => {
         });
     });
 
-    describe('Event Recording Tools', () => {
-        it('should handle recording session workflow', async () => {
-            // Test start recording
-            const startResponse = await client.sendRequest('tools/call', {
-                name: 'capture_session',
-                arguments: { action: 'start', maxEvents: 5 }
-            });
 
-            expect(startResponse.result).toBeDefined();
-            const startContent = startResponse.result.content[0];
-            const startResult = JSON.parse(startContent.text);
-            expect(startResult.command).toBe('nodash record start --max-events 5');
-            
-            // Test stop recording
-            const stopResponse = await client.sendRequest('tools/call', {
-                name: 'capture_session',
-                arguments: { action: 'stop' }
-            });
-
-            const stopContent = stopResponse.result.content[0];
-            const stopResult = JSON.parse(stopContent.text);
-            expect(stopResult.command).toBe('nodash record stop');
-            
-            // Test error handling
-            const invalidResponse = await client.sendRequest('tools/call', {
-                name: 'capture_session',
-                arguments: { action: 'invalid' }
-            });
-            const invalidContent = invalidResponse.result.content[0];
-            const invalidResult = JSON.parse(invalidContent.text);
-            expect(invalidResult.success).toBe(false);
-        });
-    });
 
     // Documentation content validation removed - redundant with tool execution tests
 

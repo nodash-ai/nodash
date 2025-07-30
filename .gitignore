@@ -26,5 +26,3 @@ build/
 .DS_Store
 Thumbs.db
 
-# Nodash data directory
-.nodash/ 

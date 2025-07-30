@@ -122,47 +122,6 @@ class NodashMCPServer {
             }
           },
           {
-            name: 'capture_session',
-            description: 'Start or stop event recording session',
-            inputSchema: {
-              type: 'object',
-              properties: {
-                action: {
-                  type: 'string',
-                  enum: ['start', 'stop'],
-                  description: 'Action to perform (start or stop recording)'
-                },
-                maxEvents: {
-                  type: 'number',
-                  description: 'Maximum number of events to record (only for start action, default: 100)'
-                }
-              },
-              required: ['action']
-            }
-          },
-          {
-            name: 'replay_session',
-            description: 'Replay events from a saved session file',
-            inputSchema: {
-              type: 'object',
-              properties: {
-                filePath: {
-                  type: 'string',
-                  description: 'Path to session JSON file'
-                },
-                url: {
-                  type: 'string',
-                  description: 'Override base URL for replay (optional)'
-                },
-                dryRun: {
-                  type: 'boolean',
-                  description: 'Log events without sending HTTP requests (optional)'
-                }
-              },
-              required: ['filePath']
-            }
-          },
-          {
             name: 'query_events',
             description: 'Query events with comprehensive filtering for AI analysis',
             inputSchema: {
@@ -363,12 +322,6 @@ class NodashMCPServer {
 
         case 'get_documentation':
           return await this.getDocumentation((args as any).component);
-
-        case 'capture_session':
-          return await this.captureSession((args as any).action, (args as any).maxEvents);
-
-        case 'replay_session':
-          return await this.replaySession((args as any).filePath, (args as any).url, (args as any).dryRun);
 
         case 'query_events':
           return await this.queryEvents(args as any);
@@ -588,76 +541,6 @@ class NodashMCPServer {
     }
   }
 
-  private async captureSession(action: 'start' | 'stop', maxEvents?: number): Promise<{ content: Array<{ type: string; text: string }> }> {
-    try {
-      if (action === 'start') {
-        const args = maxEvents ? ['--max-events', maxEvents.toString()] : [];
-        const result = await this.runCliCommandInternal('record', ['start', ...args]);
-        return {
-          content: [{
-            type: "text",
-            text: JSON.stringify(result, null, 2)
-          }]
-        };
-      } else if (action === 'stop') {
-        const result = await this.runCliCommandInternal('record', ['stop']);
-        return {
-          content: [{
-            type: "text",
-            text: JSON.stringify(result, null, 2)
-          }]
-        };
-      } else {
-        throw new Error(`Invalid action: ${action}. Must be 'start' or 'stop'`);
-      }
-    } catch (error) {
-      const result = {
-        success: false,
-        message: `Capture session failed: ${error instanceof Error ? error.message : error}`,
-        error: error instanceof Error ? error.message : String(error)
-      };
-      return {
-        content: [{
-          type: "text",
-          text: JSON.stringify(result, null, 2)
-        }]
-      };
-    }
-  }
-
-  private async replaySession(filePath: string, url?: string, dryRun?: boolean): Promise<{ content: Array<{ type: string; text: string }> }> {
-    try {
-      const args = [filePath];
-      
-      if (url) {
-        args.push('--url', url);
-      }
-      
-      if (dryRun) {
-        args.push('--dry-run');
-      }
-
-      const result = await this.runCliCommandInternal('replay', args);
-      return {
-        content: [{
-          type: "text",
-          text: JSON.stringify(result, null, 2)
-        }]
-      };
-    } catch (error) {
-      const result = {
-        success: false,
-        message: `Replay session failed: ${error instanceof Error ? error.message : error}`,
-        error: error instanceof Error ? error.message : String(error)
-      };
-      return {
-        content: [{
-          type: "text",
-          text: JSON.stringify(result, null, 2)
-        }]
-      };
-    }
-  }
 
   private async queryEvents(params: {
     eventTypes?: string[];

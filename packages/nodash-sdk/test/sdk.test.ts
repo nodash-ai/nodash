@@ -117,5 +117,5 @@ describe('NodashSDK Component Tests', () => {
   });
 
   // Real-world usage scenarios removed - redundant with individual method tests
-  // Event Recording tests removed - experimental feature with incomplete implementation
+  // Focus on core functionality tests
 });
