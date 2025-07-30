@@ -1,6 +1,6 @@
 {
   "name": "@nodash/mcp",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "MCP server for nodash - AI agent layer",
   "type": "module",
   "main": "dist/server.js",
@@ -26,8 +26,8 @@
   "author": "Nodash Team",
   "license": "MIT",
   "dependencies": {
-    "@nodash/sdk": "^0.2.0",
-    "@nodash/cli": "^0.2.0",
+    "@nodash/sdk": "^0.2.1",
+    "@nodash/cli": "^0.2.1",
     "@modelcontextprotocol/sdk": "^1.15.1"
   },
   "devDependencies": {
